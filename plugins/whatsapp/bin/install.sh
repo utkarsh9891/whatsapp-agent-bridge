@@ -4,6 +4,7 @@
 #   install.sh             build the bridge + MCP server into ~/.whatsapp-mcp, write configs, link `wa` + `wa-allow`
 #   install.sh pair [phone] link this machine to WhatsApp (pairing code if phone given, else QR), then start the service
 #   install.sh service     (re)start the background bridge (launchd)
+#   install.sh cursor      add the Cursor WhatsApp workspace, the Cursor guard hook and `wa-cursor`
 #   install.sh status      show what is installed and running
 #   install.sh uninstall   stop the service and remove launchers (keeps ~/.whatsapp-mcp data)
 set -euo pipefail
@@ -35,7 +36,9 @@ do_install() {
   cp -R "$PLUGIN_ROOT/server" "$APP.new/server"
   rm -rf "$APP.new/server/.venv" "$APP.new/server/tests"
   (cd "$APP.new/server" && uv sync --quiet --no-dev)
-  cp "$PLUGIN_ROOT/bin/wa" "$PLUGIN_ROOT/bin/wa-allow" "$APP.new/"
+  cp "$PLUGIN_ROOT/bin/wa" "$PLUGIN_ROOT/bin/wa-allow" "$PLUGIN_ROOT/bin/wa-cursor" "$APP.new/"
+  cp -R "$PLUGIN_ROOT/cursor" "$APP.new/cursor"
+  cp "$PLUGIN_ROOT/skills/whatsapp-triage/SKILL.md" "$APP.new/cursor/whatsapp-triage.md"
   rm -rf "$APP" && mv "$APP.new" "$APP"
 
   [ -f "$WA_HOME/config.json" ] || printf '{\n  "allow_chats": [],\n  "allow_direct_chats": false,\n  "port": 8080\n}\n' > "$WA_HOME/config.json"
@@ -50,6 +53,7 @@ do_install() {
   case ":$PATH:" in *":$BIN_DIR:"*) ;; *) say "note: add $BIN_DIR to PATH (echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc)";; esac
 
   if launchctl print "gui/$(id -u)/$LABEL" >/dev/null 2>&1; then do_service; fi
+  if [ -d "$WA_HOME/cursor-workspace" ]; then do_cursor; fi
   say "installed to $APP"
   [ -f "$WA_HOME/whatsapp.db" ] || say "next: install.sh pair [phone-with-country-code]"
 }
@@ -125,6 +129,38 @@ PLIST
   say "bridge service running (log: $WA_HOME/bridge.log)"
 }
 
+CURSOR_HOOKS="$HOME/.cursor/hooks.json"
+
+do_cursor() {
+  [ -x "$APP/cursor/cursor-guard.sh" ] || die "run install.sh first"
+  local ws="$WA_HOME/cursor-workspace" guard="$APP/cursor/cursor-guard.sh"
+  mkdir -p "$ws/.cursor/rules"
+  jq '{mcpServers: {whatsapp: (.mcpServers.whatsapp + {type: "stdio"})}}' "$WA_HOME/mcp.json" > "$ws/.cursor/mcp.json"
+  { printf -- '---\ndescription: How to read, triage and reply to WhatsApp chats safely\nalwaysApply: true\n---\n'
+    awk 'f>=2{print} /^---$/{f++}' "$APP/cursor/whatsapp-triage.md"; } > "$ws/.cursor/rules/whatsapp-triage.mdc"
+
+  # Guard hooks in the user-level hooks file (every Cursor window), keeping any other hooks
+  mkdir -p "$(dirname "$CURSOR_HOOKS")"
+  [ -f "$CURSOR_HOOKS" ] || echo '{"version": 1, "hooks": {}}' > "$CURSOR_HOOKS"
+  [ -f "$CURSOR_HOOKS.bak-whatsapp" ] || cp "$CURSOR_HOOKS" "$CURSOR_HOOKS.bak-whatsapp"
+  jq --arg cmd "$guard" '
+    .version = (.version // 1)
+    | .hooks = (.hooks // {})
+    | reduce ("beforeMCPExecution", "beforeShellExecution") as $e (.;
+        .hooks[$e] = ([(.hooks[$e] // [])[] | select((.command // "") | test("cursor-guard\\.sh$") | not)]
+                      + [{command: $cmd, failClosed: true, timeout: 10}]))
+  ' "$CURSOR_HOOKS" > "$CURSOR_HOOKS.tmp" && mv "$CURSOR_HOOKS.tmp" "$CURSOR_HOOKS"
+
+  ln -sf "$APP/wa-cursor" "$BIN_DIR/wa-cursor"
+  say "Cursor: workspace $ws, guard in $CURSOR_HOOKS; open it with wa-cursor"
+}
+
+remove_cursor_hooks() {
+  [ -f "$CURSOR_HOOKS" ] || return 0
+  jq '.hooks |= with_entries(.value |= map(select((.command // "") | test("cursor-guard\\.sh$") | not)))' \
+    "$CURSOR_HOOKS" > "$CURSOR_HOOKS.tmp" && mv "$CURSOR_HOOKS.tmp" "$CURSOR_HOOKS"
+}
+
 do_status() {
   say "data dir:  $WA_HOME $( [ -d "$WA_HOME" ] && echo ok || echo MISSING)"
   say "app:       $( [ -x "$APP/whatsapp-bridge" ] && echo installed || echo 'not installed')"
@@ -136,13 +172,15 @@ do_status() {
   fi
   say "allowlist: $(jq -r '"\(.allow_chats | length) chats, direct=\(.allow_direct_chats)"' "$WA_HOME/config.json" 2>/dev/null || echo none)"
   say "launcher:  $(command -v wa || echo "not on PATH ($BIN_DIR)")"
+  say "cursor:    $( [ -f "$WA_HOME/cursor-workspace/.cursor/mcp.json" ] && echo "workspace ok" || echo "not set up") / guard $(jq -r '[.hooks[]?[]? | select((.command // "") | test("cursor-guard"))] | length' "$CURSOR_HOOKS" 2>/dev/null || echo 0) hooks"
   say "last log:  $(tail -1 "$WA_HOME/bridge.log" 2>/dev/null || echo -)"
 }
 
 do_uninstall() {
   launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
   launchctl bootout "gui/$(id -u)/$OLD_LABEL" 2>/dev/null || true
-  rm -f "$PLIST" "$HOME/Library/LaunchAgents/$OLD_LABEL.plist" "$BIN_DIR/wa" "$BIN_DIR/wa-allow"
+  remove_cursor_hooks
+  rm -f "$PLIST" "$HOME/Library/LaunchAgents/$OLD_LABEL.plist" "$BIN_DIR/wa" "$BIN_DIR/wa-allow" "$BIN_DIR/wa-cursor"
   rm -rf "$APP"
   say "removed service and launchers; data kept in $WA_HOME (delete it to unlink fully, and remove the device in WhatsApp → Linked devices)"
 }
@@ -151,7 +189,8 @@ case "${1:-install}" in
   install) do_install ;;
   pair) shift; do_pair "${1:-}" ;;
   service) do_service ;;
+  cursor) do_cursor ;;
   status) do_status ;;
   uninstall) do_uninstall ;;
-  *) sed -n '2,9p' "$0"; exit 1 ;;
+  *) sed -n '2,10p' "$0"; exit 1 ;;
 esac
