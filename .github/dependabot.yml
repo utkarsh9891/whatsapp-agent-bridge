@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /plugins/whatsapp/bridge
+    schedule: { interval: weekly }
+  - package-ecosystem: uv
+    directory: /plugins/whatsapp/server
+    schedule: { interval: weekly }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
