@@ -19,7 +19,7 @@ flowchart LR
 
 | Component | Module | Runs as | Owns |
 |---|---|---|---|
-| **bridge** | [`plugins/whatsapp/bridge`](../../plugins/whatsapp/bridge/README.md) | long-running process (`launchd` agent `com.whatsapp-claude.bridge`) | the WhatsApp session (`whatsapp.db`), the message store (`messages.db`), the API token, the allowlist check |
+| **bridge** | [`plugins/whatsapp/bridge`](../../plugins/whatsapp/bridge/README.md) | long-running process (`launchd` agent `com.whatsapp-agent-bridge.bridge`) | the WhatsApp session (`whatsapp.db`), the message store (`messages.db`), the API token, the allowlist check |
 | **server** | [`plugins/whatsapp/server`](../../plugins/whatsapp/server/README.md) | child process of the AI client, per session, over stdio | the MCP tool surface, the `digest` triage view |
 | **plugin** | [`plugins/whatsapp`](../../plugins/whatsapp/README.md) | loaded by Claude Code | the guard hook, `/wa-setup`, the triage skill, `wa` and `wa-allow`, `install.sh` |
 

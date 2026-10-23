@@ -2,6 +2,12 @@
 
 Notable changes per plugin version (`plugins/whatsapp/.claude-plugin/plugin.json`). Back to [AGENTS.md](./AGENTS.md).
 
+## 0.2.1 — 2026-10-24
+
+- Renamed the repo and plugin source to **whatsapp-agent-bridge** (it serves Claude Code and, next, Cursor). Install
+  as `whatsapp@whatsapp-agent-bridge`; the old GitHub URL redirects. The background service label becomes
+  `com.whatsapp-agent-bridge.bridge`; `install.sh service` removes the old one.
+
 ## 0.2.0 — 2026-10-24
 
 - The allowlist is shared by every machine through your WhatsApp "Message yourself" chat: `#wa add|remove|direct`
