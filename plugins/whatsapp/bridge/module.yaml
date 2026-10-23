@@ -1,0 +1,33 @@
+# Machine-readable module manifest. Agents parse this to map the repo; keep it in sync with go.mod.
+id: bridge
+type: service
+purpose: >
+  Long-running WhatsApp linked device (whatsmeow). Stores every chat's name and activity time, and message
+  content only for allowlisted chats; serves a loopback-only, token-authenticated API for sends and media
+  downloads, refusing unlisted recipients and files outside the outbox. Hardened fork of lharries/whatsapp-mcp.
+  Decisions: ADR 2026-10-23-de419c, ADR 2026-10-23-e302a3.
+consumes:
+  - go.mau.fi/whatsmeow           # WhatsApp multi-device protocol
+  - github.com/mattn/go-sqlite3   # message store (cgo)
+  - rsc.io/qr                     # QR PNG for pairing
+language: go
+runtime:
+  go: ">=1.26"                    # exact toolchain in go.mod
+data_dir: "$WA_HOME (default ~/.whatsapp-mcp)"
+interfaces:
+  - "POST 127.0.0.1:<port>/api/send      {recipient, message, media_path?}  Bearer token, application/json"
+  - "POST 127.0.0.1:<port>/api/download  {message_id, chat_jid}             Bearer token, application/json"
+  - "writes messages.db (chats, messages) read by server"
+guard_files:
+  - ./config.go
+docs:
+  readme: ./README.md
+  design: ../../../docs/architecture/decisions/2026-10-23-e302a3-allowlist-gates-content-and-sends.md
+  security: ../../../docs/architecture/security-model.md
+commands:
+  build: "go build -o whatsapp-bridge ."
+  test: "go test ./..."
+  lint: "gofmt -l . && go vet ./..."
+  run: "./whatsapp-bridge [-pair-phone <digits>]"
+owners:
+  - utkarsh9891

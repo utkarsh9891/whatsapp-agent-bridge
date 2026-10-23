@@ -1,0 +1,31 @@
+# Machine-readable module manifest. Agents parse this to map the repo; keep it in sync with the files it names.
+id: plugin
+type: plugin            # plugin | service | mcp-server
+purpose: >
+  Claude Code plugin that packages WhatsApp access behind a dedicated session: the bypass guard hook
+  (PreToolUse, every session), /wa-setup, the whatsapp-triage skill, the wa and wa-allow launchers, and
+  install.sh (build, pair, launchd service). Decisions: ADR 2026-10-23-8f4095.
+consumes:
+  - bridge              # built and run by bin/install.sh
+  - server              # installed by bin/install.sh, launched by bin/wa via mcp.json
+language: bash
+manifests:
+  plugin: ./.claude-plugin/plugin.json
+  marketplace: ../../.claude-plugin/marketplace.json
+  hooks: ./hooks/hooks.json
+guard_files:            # CODEOWNERS-protected; see docs/architecture/security-model.md
+  - ./hooks/bypass-guard.sh
+  - ./hooks/hooks.json
+  - ./wa/settings.json
+  - ./bin/wa
+  - ./bin/install.sh
+docs:
+  readme: ./README.md
+  design: ../../docs/architecture/decisions/2026-10-23-8f4095-dedicated-session-and-bypass-guard.md
+  security: ../../docs/architecture/security-model.md
+commands:
+  test: "hooks/test-bypass-guard.sh && shellcheck bin/install.sh bin/wa hooks/*.sh"
+  install: "bin/install.sh"
+  status: "bin/install.sh status"
+owners:
+  - utkarsh9891

@@ -1,0 +1,9 @@
+---
+description: No real phone numbers, chat names, message text or tokens in the repo
+alwaysApply: true
+---
+
+# No real data in the repo
+
+The repo is public. Code, tests, docs, commits and PRs must not contain real phone numbers, group names,
+message text, media, `~/.whatsapp-mcp` files or tokens. Test data comes from `bridge/fixture_test.go`.

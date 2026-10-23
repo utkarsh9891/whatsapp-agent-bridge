@@ -8,5 +8,6 @@
 /plugins/whatsapp/wa/settings.json   @utkarsh9891
 /plugins/whatsapp/bin/wa             @utkarsh9891
 /plugins/whatsapp/bin/install.sh     @utkarsh9891
-# Repo policy itself
+# Repo policy and its documentation gate
+/scripts/check-docs.py              @utkarsh9891
 /.github/                            @utkarsh9891
