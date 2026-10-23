@@ -14,7 +14,11 @@ session** with permission prompts on.
 
 ## Install
 
-Prereqs (macOS): `brew install go uv` (and `jq` if `/usr/bin/jq` is missing).
+Prereqs (macOS): `brew install go uv gh` (and `jq` if `/usr/bin/jq` is missing).
+
+The repo is private: you need read access to it (ask the owner to add you as a collaborator), then
+`gh auth login && gh auth setup-git` so Claude Code's git clone can authenticate over HTTPS. SSH (port 22) is
+often blocked on corporate networks.
 
 ```text
 /plugin marketplace add https://github.com/utkarsh9891/whatsapp-claude.git
