@@ -13,6 +13,11 @@ if [ "${1:-}" = "--cli" ]; then
     esac
   done
   command -v agent >/dev/null || { echo "wa-cursor: Cursor CLI not found (curl https://cursor.com/install -fsS | bash)" >&2; exit 1; }
-  exec agent --workspace "$WS" "$@"
+  # Cheap model unless the caller picks one (--model or WA_CURSOR_MODEL)
+  model=(--model "${WA_CURSOR_MODEL:-composer-2.5}")
+  for a in "$@"; do
+    case "$a" in --model|--model=*) model=() ;; esac
+  done
+  exec agent --workspace "$WS" "${model[@]}" "$@"
 fi
 exec open -a Cursor "$WS"

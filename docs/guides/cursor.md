@@ -21,9 +21,16 @@ server for that workspace when asked.
 |---|---|
 | `wa-cursor` | the WhatsApp workspace in the Cursor app |
 | `wa-cursor --cli` | the Cursor `agent` CLI in that workspace (`--force` / `--yolo` refused) |
+| `wa-cursor --cli -p "<question>"` | one answer and exit (background) |
 
 Ask the same reading questions as in Claude ("what needs my attention today?", "what did Field Ops North say
 about the outage?"). To reply, draft it here and send it from `wa`.
+
+## Model
+
+`wa-cursor --cli` defaults to a cheap model, **`composer-2.5`**. Override with `--model` (for example
+`wa-cursor --cli --model claude-opus-5-5-medium`) or `WA_CURSOR_MODEL`; `agent models` lists what your account
+allows. In the Cursor app, pick the model in the chat's model menu; a launcher can't set it.
 
 ## What the guard does
 

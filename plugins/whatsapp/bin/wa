@@ -2,6 +2,11 @@
 # Launch the WhatsApp Claude session: only the WhatsApp MCP server, prompts on,
 # bypass disabled, from a neutral directory so no project settings apply.
 WA_HOME="${WA_HOME:-$HOME/.whatsapp-mcp}"
+# Cheap model unless the caller picks one (--model or WA_MODEL)
+model=(--model "${WA_MODEL:-haiku}")
+for a in "$@"; do
+  case "$a" in --model|--model=*) model=() ;; esac
+done
 for a in "$@"; do
   case "$a" in
     --dangerously-skip-permissions|--allow-dangerously-skip-permissions|--permission-mode|--permission-mode=*|--mcp-config|--mcp-config=*|--settings|--settings=*)
@@ -11,4 +16,4 @@ done
 [ -f "$WA_HOME/mcp.json" ] || { echo "wa: not installed; run /wa-setup in Claude Code" >&2; exit 1; }
 mkdir -p "$WA_HOME/workspace" && cd "$WA_HOME/workspace" || exit 1
 exec claude --mcp-config "$WA_HOME/mcp.json" --strict-mcp-config \
-  --settings "$WA_HOME/settings.json" --permission-mode default "$@"
+  --settings "$WA_HOME/settings.json" --permission-mode default "${model[@]}" "$@"
