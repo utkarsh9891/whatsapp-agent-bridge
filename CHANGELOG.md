@@ -2,6 +2,13 @@
 
 Notable changes per plugin version (`plugins/whatsapp/.claude-plugin/plugin.json`). Back to [AGENTS.md](./AGENTS.md).
 
+## 0.3.2 — 2026-10-24
+
+- `#wa add me` (also `myself`, `self`) allowlists your own "Message yourself" chat by its phone-number and LID
+  JIDs; it has no name to match.
+- The Cursor workspace rules state that Cursor is read-only for WhatsApp, so the agent drafts replies for `wa`
+  instead of offering to send.
+
 ## 0.3.1 — 2026-10-24
 
 - Cheap models by default: `wa` uses `haiku`, `wa-cursor --cli` uses `composer-2.5`. Override with `--model` or
