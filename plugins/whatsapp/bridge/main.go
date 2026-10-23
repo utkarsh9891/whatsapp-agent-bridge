@@ -826,7 +826,7 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 			json.NewEncoder(w).Encode(CommandResponse{Message: fmt.Sprintf("Error sending command: %v", err)})
 			return
 		}
-		result, err := applySelfCommand(resp.ID, cmd, messageStore.lookupChatsByName)
+		result, err := applySelfCommand(resp.ID, cmd, messageStore.lookupChatsByName, selfChatJIDs(client))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(CommandResponse{Message: err.Error()})

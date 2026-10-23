@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"go.mau.fi/whatsmeow/types"
@@ -79,7 +80,7 @@ func TestApplySelfCommand(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		got, err := applySelfCommand(id, cmd, lookup)
+		got, err := applySelfCommand(id, cmd, lookup, []string{"919999@s.whatsapp.net", "12345@lid"})
 		if err != nil || got != want {
 			t.Fatalf("%s: got %q err %v, want %q", text, got, err, want)
 		}
@@ -121,7 +122,7 @@ func TestAppliedCommandsCapped(t *testing.T) {
 	setHome(t)
 	cmd := selfCommand{Op: "direct", Arg: "on"}
 	for i := 0; i < maxAppliedCommands+20; i++ {
-		applySelfCommand(string(rune('a'+i%26))+string(rune(i)), cmd, lookupFrom(nil))
+		applySelfCommand(string(rune('a'+i%26))+string(rune(i)), cmd, lookupFrom(nil), nil)
 	}
 	if n := len(currentConfig().AppliedCommands); n != maxAppliedCommands {
 		t.Fatalf("applied_commands len %d", n)
@@ -131,7 +132,7 @@ func TestAppliedCommandsCapped(t *testing.T) {
 func TestMutateConfigKeepsHandEdits(t *testing.T) {
 	setHome(t)
 	writeConfig(t, `{"allow_chats":["5@g.us"],"port":9090}`)
-	if _, err := applySelfCommand("x", selfCommand{Op: "add", Arg: "6@g.us"}, lookupFrom(nil)); err != nil {
+	if _, err := applySelfCommand("x", selfCommand{Op: "add", Arg: "6@g.us"}, lookupFrom(nil), nil); err != nil {
 		t.Fatal(err)
 	}
 	c := currentConfig()
@@ -153,5 +154,44 @@ func TestCommandsOnlyFromSelf(t *testing.T) {
 	}
 	if obeyCommand(true, group, pn, lid) || obeyCommand(true, other, pn, lid) {
 		t.Fatal("my #wa messages in other chats must be ignored")
+	}
+}
+
+func TestSelfAlias(t *testing.T) {
+	setHome(t)
+	self := []string{"919999@s.whatsapp.net", "12345@lid"}
+	writeConfig(t, `{"allow_names":["myself"]}`)               // left pending by an earlier "#wa add myself"
+	for i, alias := range []string{"me", "MySelf", " self "} { // "me" first: it must also clear the pending "myself"
+		got, err := applySelfCommand(fmt.Sprint("a", i), selfCommand{Op: "add", Arg: alias}, lookupFrom(map[string]string{"x@g.us": "me"}), self)
+		if err != nil || got != resultApplied {
+			t.Fatalf("%q: %q %v", alias, got, err)
+		}
+	}
+	c := currentConfig()
+	if i := 0; len(c.AllowNames) != i {
+		t.Fatalf("pending alias names left: %+v", c.AllowNames)
+	}
+	if !isAllowed("919999@s.whatsapp.net") || !isAllowed("12345@lid") || isAllowed("x@g.us") || len(c.AllowChats) != 2 {
+		t.Fatalf("alias must add exactly the self JIDs, not a chat named \"me\": %+v", c.AllowChats)
+	}
+	if len(c.AllowNames) != 0 {
+		t.Fatalf("stale pending alias name not cleared: %+v", c.AllowNames)
+	}
+	if got, _ := applySelfCommand("r", selfCommand{Op: "remove", Arg: "me"}, lookupFrom(nil), self); got != resultApplied || isAllowed("12345@lid") {
+		t.Fatal("remove me not applied")
+	}
+	if got, _ := applySelfCommand("u", selfCommand{Op: "add", Arg: "me"}, lookupFrom(nil), nil); got != resultInvalid {
+		t.Fatalf("unpaired bridge must refuse the alias, got %q", got)
+	}
+}
+
+func TestAddMeClearsPendingMyself(t *testing.T) {
+	setHome(t)
+	writeConfig(t, `{"allow_names":["myself","field ops east"]}`)
+	if got, _ := applySelfCommand("m", selfCommand{Op: "add", Arg: "me"}, lookupFrom(nil), []string{"1@lid"}); got != resultApplied {
+		t.Fatal(got)
+	}
+	if n := currentConfig().AllowNames; len(n) != 1 || n[0] != "field ops east" {
+		t.Fatalf("want only the unrelated pending name kept, got %+v", n)
 	}
 }

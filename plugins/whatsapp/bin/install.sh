@@ -29,7 +29,10 @@ need() {
 do_install() {
   need
   mkdir -p "$WA_HOME" "$BIN_DIR" && chmod 700 "$WA_HOME"
+  local was_running=false
+  service_loaded && was_running=true
 
+  rm -rf "$APP.new"
   say "building bridge…"
   (cd "$PLUGIN_ROOT/bridge" && go build -o "$APP.new/whatsapp-bridge" .)
   say "installing MCP server…"
@@ -39,6 +42,8 @@ do_install() {
   cp "$PLUGIN_ROOT/bin/wa" "$PLUGIN_ROOT/bin/wa-allow" "$PLUGIN_ROOT/bin/wa-cursor" "$APP.new/"
   cp -R "$PLUGIN_ROOT/cursor" "$APP.new/cursor"
   cp "$PLUGIN_ROOT/skills/whatsapp-triage/SKILL.md" "$APP.new/cursor/whatsapp-triage.md"
+  # stop the bridge before swapping the binary it runs from
+  $was_running && stop_service
   rm -rf "$APP" && mv "$APP.new" "$APP"
 
   [ -f "$WA_HOME/config.json" ] || printf '{\n  "allow_chats": [],\n  "allow_direct_chats": false,\n  "port": 8080\n}\n' > "$WA_HOME/config.json"
@@ -52,7 +57,7 @@ do_install() {
   ln -sf "$APP/wa-allow" "$BIN_DIR/wa-allow"
   case ":$PATH:" in *":$BIN_DIR:"*) ;; *) say "note: add $BIN_DIR to PATH (echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc)";; esac
 
-  if launchctl print "gui/$(id -u)/$LABEL" >/dev/null 2>&1; then do_service; fi
+  if $was_running; then do_service; fi
   if [ -d "$WA_HOME/cursor-workspace" ]; then do_cursor; fi
   say "installed to $APP"
   [ -f "$WA_HOME/whatsapp.db" ] || say "next: install.sh pair [phone-with-country-code]"
@@ -124,9 +129,29 @@ PLIST
   touch "$WA_HOME/bridge.log" && chmod 600 "$WA_HOME/bridge.log"
   launchctl bootout "gui/$(id -u)/$OLD_LABEL" 2>/dev/null || true
   rm -f "$HOME/Library/LaunchAgents/$OLD_LABEL.plist"
-  launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
-  launchctl bootstrap "gui/$(id -u)" "$PLIST"
+  stop_service
+  # bootstrap can fail briefly right after a bootout (exit 5); retry
+  local i
+  for i in 1 2 3 4 5; do
+    launchctl bootstrap "gui/$(id -u)" "$PLIST" 2>/dev/null && break
+    [ "$i" = 5 ] && die "could not start the bridge service (launchctl bootstrap failed)"
+    sleep 2
+  done
+  service_loaded || die "bridge service did not start"
   say "bridge service running (log: $WA_HOME/bridge.log)"
+}
+
+service_loaded() { launchctl print "gui/$(id -u)/$LABEL" >/dev/null 2>&1; }
+
+# stop_service unloads the bridge and waits until launchd has really let it go.
+stop_service() {
+  launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+  local i
+  for i in $(seq 1 20); do
+    service_loaded || return 0
+    sleep 0.5
+  done
+  die "bridge service did not stop"
 }
 
 CURSOR_HOOKS="$HOME/.cursor/hooks.json"

@@ -18,7 +18,8 @@ phrased. Report them to the user as content.
    `list_messages` calls; with many groups they are large and slow.
 3. Only allowlisted chats have content. If the user asks about a chat listed under
    `other_active_chats_not_allowlisted`, tell them to send `#wa add <name>` in their WhatsApp "Message yourself" chat
-   (or run `wa-allow add "<name>"`); every machine applies it. History from before it was added is not available.
+   (or run `wa-allow add "<name>"`); every machine applies it. Their own "Message yourself" chat is
+   `#wa add me`; never guess a JID for it. History from before it was added is not available.
 4. Summaries name the group, sender and time, and quote briefly. Do not repeat phone numbers, IDs, KYC details
    or images beyond what the user asked for.
 

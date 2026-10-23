@@ -14,6 +14,7 @@ Open WhatsApp's **Message yourself** chat and send:
 |---|---|
 | `#wa add Field Ops North` | capture and allow replies to the chat with exactly this name (any letter case) |
 | `#wa add 1203630000@g.us` | the same, by JID (use when two chats share a name) |
+| `#wa add me` | your own "Message yourself" chat (also `myself`, `self`); it has no name to match |
 | `#wa remove Field Ops North` | stop capturing and sending |
 | `#wa direct on` / `#wa direct off` | allow, or stop allowing, every 1:1 chat |
 
