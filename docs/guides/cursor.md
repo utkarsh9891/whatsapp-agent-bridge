@@ -2,7 +2,8 @@
 
 Back to [AGENTS.md](../../AGENTS.md). Why it works this way: [ADR 2026-10-23-b283a0](../architecture/decisions/2026-10-23-b283a0-cursor-support-with-taint-guard.md).
 
-Cursor uses the same bridge, messages and allowlist as Claude Code. Pick whichever has budget; nothing is set up twice.
+Cursor uses the same bridge, messages and allowlist as Claude Code, so reading and triage work in whichever has
+budget. **Cursor is read-only for WhatsApp:** replies go through the Claude `wa` session. Nothing is set up twice.
 
 ## Setup (once per machine)
 
@@ -21,18 +22,19 @@ server for that workspace when asked.
 | `wa-cursor` | the WhatsApp workspace in the Cursor app |
 | `wa-cursor --cli` | the Cursor `agent` CLI in that workspace (`--force` / `--yolo` refused) |
 
-Ask the same things as in Claude ("what needs my attention today?", "reply in Field Ops North that…").
+Ask the same reading questions as in Claude ("what needs my attention today?", "what did Field Ops North say
+about the outage?"). To reply, draft it here and send it from `wa`.
 
 ## What the guard does
 
-Cursor doesn't tell hooks whether a chat is in auto-run, so the guard doesn't depend on it:
+Cursor doesn't tell hooks whether a chat is in auto-run, and in auto-run it ignores a hook's "ask" (tested), so
+the guard only allows or blocks:
 
 | Situation | Result |
 |---|---|
 | WhatsApp read tools (`digest`, `list_messages`, …) in the WhatsApp workspace | allowed |
-| `send_message`, `send_file`, `send_audio_message`, `download_media` | **always asks**, auto-run or not |
-| any shell command, or another MCP server's tool, in a chat that has used WhatsApp | **asks** |
-| WhatsApp tools in any other Cursor project | denied |
+| `send_message`, `send_file`, `send_audio_message`, `download_media` | **blocked**: reply from `wa` |
+| any shell command, or another MCP server's tool, in a chat that has used WhatsApp | **blocked**: start a new chat |
+| WhatsApp tools in any other Cursor project | blocked |
 
-So after you read WhatsApp in a chat, every terminal command in that chat asks first. Start a new chat for
-unrelated work.
+The Claude Code guard also runs inside Cursor; it lets the Cursor guard decide when that guard is installed.

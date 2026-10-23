@@ -1,9 +1,11 @@
 #!/bin/bash
 # Cursor guard for WhatsApp tools (ADR 2026-10-23-b283a0). Cursor hooks can't see
-# whether auto-run is on, so this doesn't depend on it: sends always ask, and
-# once a conversation has used WhatsApp, its shell commands and other MCP tools
-# ask too. WhatsApp tools are denied outside the WhatsApp workspace. Registered
-# in ~/.cursor/hooks.json with failClosed; malformed input is denied.
+# whether auto-run is on, and in auto-run Cursor does not honour "ask" (verified
+# 2026-10-24), so every decision here is allow or deny: Cursor is read-only for
+# WhatsApp (sends and downloads denied; reply from the Claude `wa` session), and
+# once a conversation has used WhatsApp its shell commands and other MCP tools
+# are denied. WhatsApp tools are denied outside the WhatsApp workspace.
+# Registered in ~/.cursor/hooks.json with failClosed; malformed input is denied.
 WA_HOME="${WA_HOME:-$HOME/.whatsapp-mcp}"
 WORKSPACE="$WA_HOME/cursor-workspace"
 TAINT_DIR="$WA_HOME/cursor-taint"
@@ -32,16 +34,16 @@ case "$event" in
       mkdir -p "$TAINT_DIR" && chmod 700 "$TAINT_DIR" && : > "$TAINT_DIR/$conv"
       case "$tool" in
         *send_message|*send_file|*send_audio_message|*download_media)
-          respond ask "WhatsApp: approve ${tool}? Check the chat and the text first." ;;
+          respond deny "Cursor is read-only for WhatsApp: ${tool} is blocked. Reply from the Claude session (wa)." ;;
       esac
       respond allow ""
     fi
-    tainted && respond ask "This chat has read WhatsApp messages; approve ${server:-MCP} tool ${tool}?"
+    tainted && respond deny "This chat has read WhatsApp messages, so other tools are blocked in it. Start a new chat for ${server:-MCP} ${tool}."
     respond allow ""
     ;;
   beforeShellExecution)
     cmd=$(field .command)
-    tainted && respond ask "This chat has read WhatsApp messages; approve the command: ${cmd:0:120}"
+    tainted && respond deny "This chat has read WhatsApp messages, so shell commands are blocked in it. Start a new chat to run: ${cmd:0:120}"
     respond allow ""
     ;;
   *)

@@ -1,4 +1,4 @@
-# 2026-10-23-b283a0 — Cursor support: a dedicated workspace and a mode-independent taint guard
+# 2026-10-23-b283a0 — Cursor support: a dedicated workspace, read-only, with a taint guard
 
 - **Status:** accepted
 - **Date:** 2026-10-23
@@ -19,39 +19,47 @@ never become an action without the user approving it.**
    `.cursor/mcp.json` and the triage rules in `.cursor/rules/`. The server is **not** added to the global
    `~/.cursor/mcp.json`. `wa-cursor` opens it in the Cursor app; `wa-cursor --cli` starts the `agent` CLI in it
    and refuses `--force`/`--yolo`.
-2. **A user-level guard** in `~/.cursor/hooks.json` (applies to every window), `failClosed: true`, handling:
-   - `beforeMCPExecution` for the WhatsApp server: **deny** outside the WhatsApp workspace; **ask** for
-     `send_message`, `send_file`, `send_audio_message`, `download_media`; allow read tools. Any WhatsApp call
-     **taints** the conversation (marker file per `conversation_id`).
-   - `beforeShellExecution`, and `beforeMCPExecution` for any other server: **ask** in a tainted conversation.
+2. **A user-level guard** in `~/.cursor/hooks.json` (applies to every window), `failClosed: true`, that only
+   ever returns `allow` or `deny`:
+   - `beforeMCPExecution` for the WhatsApp server: **deny** outside the WhatsApp workspace; **deny**
+     `send_message`, `send_file`, `send_audio_message`, `download_media` (**Cursor is read-only for WhatsApp**;
+     replies go through the Claude `wa` session); allow read tools. Any WhatsApp call **taints** the
+     conversation (marker file per `conversation_id`).
+   - `beforeShellExecution`, and `beforeMCPExecution` for any other server: **deny** in a tainted conversation.
    - Unparseable input: deny.
-   The guard needs no knowledge of the run mode: sends always ask, and once WhatsApp text is in a conversation,
-   nothing else runs without approval.
-3. **Fallback if "ask" isn't enforced.** If testing shows Cursor ignores `ask` for these hooks in auto-run, the
-   guard denies instead, and Cursor is read-only (replies only from the Claude `wa` session).
+3. **The Claude guard defers under Cursor.** Cursor also runs Claude Code's hooks, without a `permission_mode`.
+   The Claude guard ([8f4095](./2026-10-23-8f4095-dedicated-session-and-bypass-guard.md)) steps aside when the
+   input carries `cursor_version` **and** the Cursor guard is registered; otherwise it still blocks.
+
+Why deny rather than ask: the first design asked for sends and for tools in tainted chats. Live tests in
+`agent --yolo` showed Cursor **ignores `ask`** from these hooks in auto-run: the shell command ran and the send
+reached the bridge. Hooks can't see the run mode, so the only safe answer is deny.
 
 ## Assumptions
-- 1. Cursor runs user-level hooks for `beforeMCPExecution` and `beforeShellExecution` in the app and the `agent`
-     CLI, including in auto-run mode (Cursor 3.27 / CLI 2026.10.22). **Verified before merge.**
-- 2. `permission: "ask"` from those hooks makes Cursor ask the user, even in auto-run; in headless `-p` runs it
-     does not proceed. **Verified before merge;** if false, decision 3 applies.
-- 3. Hook input carries `conversation_id`, `workspace_roots`, `mcp_server_name` and `tool_name` (Cursor docs, 2026-10).
-- 4. `failClosed: true` makes a crashed or timed-out hook block the action (Cursor docs, 2026-10).
+- 1. Cursor runs user-level hooks for `beforeMCPExecution` and `beforeShellExecution` in the `agent` CLI,
+     including in `--yolo` (**verified 2026-10-24**, Cursor CLI 2026.10.22, app 3.27.6).
+- 2. In auto-run Cursor does **not** honour `permission: "ask"` from those hooks (**verified 2026-10-24**: a
+     tainted shell command ran and a send reached the bridge); `deny` is honoured (**verified**: both blocked).
+- 3. Hook input carries `conversation_id`, `workspace_roots`, `mcp_server_name`, `tool_name` and `cursor_version`
+     (**verified 2026-10-24** from logged hook input).
+- 4. Cursor also runs Claude Code plugin hooks (**verified 2026-10-24**: the Claude guard fired in Cursor).
+- 5. `failClosed: true` makes a crashed or timed-out hook block the action (Cursor docs, 2026-10).
 
 ## Reversal triggers
-- Revisit if Cursor exposes the run mode to hooks: block outright in auto-run, as on Claude (Assumption #2 becomes moot).
-- Revisit if a Cursor release changes hook semantics (Assumptions #1, #2): rerun the guard's live checks on upgrade.
+- Revisit if Cursor honours `ask` in auto-run, or exposes the run mode to hooks (Assumption #2): sends could then
+  ask instead of being denied, making Cursor read-write.
+- Revisit if a Cursor release changes hook semantics (Assumptions #1–#4): rerun the live checks on upgrade.
 - Revisit if the user wants WhatsApp tools in ordinary Cursor projects: today they are denied outside the workspace.
 
 ## Consequences
-- Both clients share one bridge, store and allowlist; switching is choosing which app to open.
-- After reading WhatsApp in a Cursor chat, every shell command in that chat asks, including harmless ones. That
-  friction is the price of not knowing the run mode.
+- Both clients share one bridge, store and allowlist. Reading and triage work in either; **replies only from
+  Claude** (`wa`).
+- After reading WhatsApp in a Cursor chat, shell commands and other tools are blocked in that chat; unrelated work
+  needs a new chat.
 - Taint markers accumulate in `~/.whatsapp-mcp/cursor-taint/`; they hold only conversation IDs.
 
 ## Alternatives considered
 - **Register globally in `~/.cursor/mcp.json`:** rejected; puts WhatsApp next to every project.
 - **Deny all WhatsApp tools when auto-run is on:** not possible; hooks can't see the mode (the reason for this ADR).
-- **Ask on every WhatsApp read too:** rejected as the default; reads alone can't act, and the taint rule covers
-  what an injected read could lead to.
-- **Cursor read-only from the start:** kept as the fallback under Assumption #2.
+- **Ask instead of deny:** the first design; rejected under Assumption #2 after live testing.
+- **Ask on every WhatsApp read:** rejected for the same reason; `ask` isn't enforced in auto-run.
