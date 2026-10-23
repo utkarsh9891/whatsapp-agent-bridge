@@ -2,6 +2,11 @@
 
 Notable changes per plugin version (`plugins/whatsapp/.claude-plugin/plugin.json`). Back to [AGENTS.md](./AGENTS.md).
 
+## 0.3.1 — 2026-10-24
+
+- Cheap models by default: `wa` uses `haiku`, `wa-cursor --cli` uses `composer-2.5`. Override with `--model` or
+  `WA_MODEL` / `WA_CURSOR_MODEL`. Guides cover background one-shot runs (`wa -p`, `wa-cursor --cli -p`).
+
 ## 0.3.0 — 2026-10-24
 
 - **Cursor support (read-only)**: `install.sh cursor` adds a WhatsApp workspace and a user-level taint guard;

@@ -15,4 +15,26 @@ guard hook blocks it.
 | "Send the report" | only files you put in `~/.whatsapp-mcp/outbox` can be sent, after approval |
 
 Only allowlisted chats have content: [allowlist guide](./allowlist.md). `wa` refuses bypass and config-override
-flags; other Claude flags (for example `--model`, `-p`) pass through.
+flags; other Claude flags pass through.
+
+## Model
+
+`wa` runs on a cheap model by default: **`haiku`**. Choose another for one session with `--model`, or for every
+`wa` in a shell with `WA_MODEL`:
+
+```bash
+wa                      # haiku
+wa --model sonnet       # this session only
+WA_MODEL=opus wa        # any Claude model name or alias
+```
+
+## Background (no session)
+
+`wa -p "<question>"` answers once and exits, on the same default model:
+
+```bash
+wa -p "what needs my attention in the last 12 hours?"
+```
+
+It is read-only by design: read tools are pre-allowed, and sends need an approval a background run can't give,
+so they are refused.
