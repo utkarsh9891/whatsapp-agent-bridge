@@ -38,7 +38,8 @@ and allowlist are kept).
 ## Several machines
 
 Each machine is a separate linked device (WhatsApp allows four): install and pair on each. Replies sent from any
-device reach all of them. Each machine stores from its own pairing onwards, and keeps its own allowlist.
+device reach all of them. Each machine stores from its own pairing onwards. The allowlist is shared through your
+self-chat ([allowlist guide](../guides/allowlist.md)); nothing needs syncing.
 
 ## Uninstall
 
@@ -51,7 +52,8 @@ delete `~/.whatsapp-mcp` and remove the device under **Linked devices** on the p
 |---|---|---|
 | `paired: no` after it worked | phone unlinked the device, or it expired | `install.sh pair <number>` |
 | no new messages | `install.sh status`, `tail ~/.whatsapp-mcp/bridge.log` | `install.sh service`; if logged out, pair again |
-| chat missing in `digest` | `wa-allow list <name>`: no `*` | `wa-allow add` it |
+| chat missing in `digest` | `wa-allow list <name>`: no `*`, or ⏳ pending | `wa-allow add` it; for ⏳, check the exact name or use the JID |
+| `#wa` command got no reaction | that machine's bridge is down | `install.sh status`; it applies on reconnect |
 | send refused "not in allow_chats" | as above | allowlist the chat |
 | send refused "media must be inside" | file location | move the file into `~/.whatsapp-mcp/outbox` |
 | "WhatsApp tools are blocked in permission mode" | you're in a normal session | use `wa` |

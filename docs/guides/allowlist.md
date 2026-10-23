@@ -1,19 +1,41 @@
 # Choosing which chats are captured
 
-Back to [AGENTS.md](../../AGENTS.md). Decision: [ADR 2026-10-23-e302a3](../architecture/decisions/2026-10-23-e302a3-allowlist-gates-content-and-sends.md).
+Back to [AGENTS.md](../../AGENTS.md). Decisions: [allowlist](../architecture/decisions/2026-10-23-e302a3-allowlist-gates-content-and-sends.md),
+[shared through the self-chat](../architecture/decisions/2026-10-23-f28675-allowlist-carried-in-whatsapp-self-chat.md).
 
 Nothing is captured until you allow it. The bridge keeps every chat's **name** so you can find it, but stores
 **messages**, downloads media and **sends** only for allowlisted chats.
 
+## From your phone (applies to every machine)
+
+Open WhatsApp's **Message yourself** chat and send:
+
+| Message | Effect |
+|---|---|
+| `#wa add Field Ops North` | capture and allow replies to the chat with exactly this name (any letter case) |
+| `#wa add 1203630000@g.us` | the same, by JID (use when two chats share a name) |
+| `#wa remove Field Ops North` | stop capturing and sending |
+| `#wa direct on` / `#wa direct off` | allow, or stop allowing, every 1:1 chat |
+
+Each machine's bridge applies the command and reacts: ✅ applied · ⏳ pending (no chat with that name seen yet on
+that machine; it applies when the chat appears) · ❓ two or more chats have that name, use the JID · ❌ not
+understood. Machines that are asleep apply it when they reconnect; a newly paired machine applies past commands
+from its history sync. Only messages **you** send in **your own** chat count; nobody else can change your allowlist.
+
+## From a laptop
+
 ```bash
-wa-allow list                    # every chat seen; * marks allowlisted
+wa-allow list                    # every chat seen; * allowlisted, ⏳ pending names
 wa-allow list ops                # filter by name or JID
-wa-allow add "Field Ops North"   # a name must match exactly one chat; otherwise pass the JID
-wa-allow remove 1203630000@g.us
-wa-allow direct on               # allow every 1:1 chat
+wa-allow add "Field Ops North"   # posts "#wa add Field Ops North" to your self-chat → every machine
+wa-allow remove "Field Ops North"
+wa-allow direct on
 ```
 
-Changes apply immediately (the bridge re-reads `~/.whatsapp-mcp/config.json`). Messages from before a chat was
-added are not fetched. Removing a chat stops capture and sends; already-stored messages stay until you delete them.
+`wa-allow add/remove/direct` need the bridge running (`install.sh status`), because they send through it.
 
-The allowlist is per machine; each machine keeps its own `config.json`.
+## Notes
+
+- Messages from before a chat was added are not fetched.
+- Removing a chat stops capture and sends; already-stored messages stay on each machine until deleted.
+- Hand edits of `~/.whatsapp-mcp/config.json` still work but stay on that machine.
