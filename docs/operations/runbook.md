@@ -7,8 +7,8 @@ Back to [AGENTS.md](../../AGENTS.md). Paths: [on-disk layout](../architecture/ov
 Prereqs (macOS): `brew install go uv` (`jq` ships with macOS 15+).
 
 ```text
-/plugin marketplace add utkarsh9891/whatsapp-claude
-/plugin install whatsapp@whatsapp-claude
+/plugin marketplace add utkarsh9891/whatsapp-agent-bridge
+/plugin install whatsapp@whatsapp-agent-bridge
 /wa-setup 91XXXXXXXXXX
 ```
 
@@ -28,11 +28,11 @@ image to scan. On success the background service starts.
 | status | `install.sh status` |
 | restart | `install.sh service` |
 | logs | `tail -f ~/.whatsapp-mcp/bridge.log` |
-| stop | `launchctl bootout gui/$(id -u)/com.whatsapp-claude.bridge` |
+| stop | `launchctl bootout gui/$(id -u)/com.whatsapp-agent-bridge.bridge` |
 
 ## Update
 
-`/plugin marketplace update whatsapp-claude`, then `/wa-setup` (rebuilds `~/.whatsapp-mcp/app`; data, pairing
+`/plugin marketplace update whatsapp-agent-bridge`, then `/wa-setup` (rebuilds `~/.whatsapp-mcp/app`; data, pairing
 and allowlist are kept).
 
 ## Several machines

@@ -1,5 +1,5 @@
 #!/bin/bash
-# WhatsApp for Claude Code: build, pair, run as a login service.
+# whatsapp-agent-bridge: build, pair, run as a login service.
 #
 #   install.sh             build the bridge + MCP server into ~/.whatsapp-mcp, write configs, link `wa` + `wa-allow`
 #   install.sh pair [phone] link this machine to WhatsApp (pairing code if phone given, else QR), then start the service
@@ -12,7 +12,8 @@ PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WA_HOME="${WA_HOME:-$HOME/.whatsapp-mcp}"
 APP="$WA_HOME/app"
 BIN_DIR="$HOME/.local/bin"
-LABEL="com.whatsapp-claude.bridge"
+LABEL="com.whatsapp-agent-bridge.bridge"
+OLD_LABEL="com.whatsapp-claude.bridge"   # pre-0.2.1 name; removed on service (re)start
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 
 say() { printf '%s\n' "$*"; }
@@ -117,6 +118,8 @@ do_service() {
 </dict></plist>
 PLIST
   touch "$WA_HOME/bridge.log" && chmod 600 "$WA_HOME/bridge.log"
+  launchctl bootout "gui/$(id -u)/$OLD_LABEL" 2>/dev/null || true
+  rm -f "$HOME/Library/LaunchAgents/$OLD_LABEL.plist"
   launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
   launchctl bootstrap "gui/$(id -u)" "$PLIST"
   say "bridge service running (log: $WA_HOME/bridge.log)"
@@ -138,7 +141,8 @@ do_status() {
 
 do_uninstall() {
   launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
-  rm -f "$PLIST" "$BIN_DIR/wa" "$BIN_DIR/wa-allow"
+  launchctl bootout "gui/$(id -u)/$OLD_LABEL" 2>/dev/null || true
+  rm -f "$PLIST" "$HOME/Library/LaunchAgents/$OLD_LABEL.plist" "$BIN_DIR/wa" "$BIN_DIR/wa-allow"
   rm -rf "$APP"
   say "removed service and launchers; data kept in $WA_HOME (delete it to unlink fully, and remove the device in WhatsApp → Linked devices)"
 }
