@@ -41,5 +41,7 @@ for p in "$(mcp c3 "$WS" whatsapp send_message)" "$(shell c1)" "$(mcp c1 "$WS" g
   printf '%s' "$p" | "$guard" | grep -q '"permission":"ask"' && { echo "FAIL an ask was returned (Cursor ignores ask in auto-run)"; fail=1; }
 done
 [ ! -e "$WA_HOME/../x" ] || { echo "FAIL taint file escaped WA_HOME"; fail=1; }
-[ "$(stat -f %Lp "$WA_HOME/cursor-taint" 2>/dev/null || stat -c %a "$WA_HOME/cursor-taint")" = 700 ] || { echo "FAIL taint dir not 0700"; fail=1; }
+# GNU stat first: on Linux `stat -f` is filesystem status and still succeeds
+perm=$(stat -c %a "$WA_HOME/cursor-taint" 2>/dev/null || stat -f %Lp "$WA_HOME/cursor-taint")
+[ "$perm" = 700 ] || { echo "FAIL taint dir not 0700 (got $perm)"; fail=1; }
 exit $fail
