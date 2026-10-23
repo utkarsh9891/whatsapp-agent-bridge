@@ -6,8 +6,6 @@
 /plugins/whatsapp/bridge/selfcmd.go  @utkarsh9891
 # Bypass-mode guard and the dedicated session's permissions
 /plugins/whatsapp/hooks/             @utkarsh9891
-/plugins/whatsapp/cursor/            @utkarsh9891
-/plugins/whatsapp/bin/wa-cursor      @utkarsh9891
 /plugins/whatsapp/wa/settings.json   @utkarsh9891
 /plugins/whatsapp/bin/wa             @utkarsh9891
 /plugins/whatsapp/bin/install.sh     @utkarsh9891

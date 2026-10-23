@@ -1,7 +1,6 @@
-# whatsapp-agent-bridge
+# whatsapp-claude
 
-Read, triage and reply to WhatsApp from AI coding agents (Claude Code and Cursor), safely: only the chats you
-allowlist, in a dedicated
+Read, triage and reply to WhatsApp from Claude Code, safely: only the chats you allowlist, in a dedicated
 session, with a hard block on permission-bypass mode.
 
 **Start at [`AGENTS.md`](./AGENTS.md)**, the map of every document in this repo.
@@ -18,8 +17,8 @@ session, with a hard block on permission-bypass mode.
 Prereqs (macOS): `brew install go uv`.
 
 ```text
-/plugin marketplace add utkarsh9891/whatsapp-agent-bridge
-/plugin install whatsapp@whatsapp-agent-bridge
+/plugin marketplace add utkarsh9891/whatsapp-claude
+/plugin install whatsapp@whatsapp-claude
 /wa-setup 91XXXXXXXXXX          # your number with country code → an 8-character pairing code
 ```
 
@@ -29,9 +28,8 @@ Prereqs (macOS): `brew install go uv`.
 wa-allow list                    # every chat seen (names only)
 wa-allow add "Field Ops North"   # start capturing a chat
 wa                               # the WhatsApp Claude session
-wa-cursor                        # or the WhatsApp workspace in Cursor (after install.sh cursor)
 ```
 
-More: [Claude Code guide](./docs/guides/claude-code.md) · [Cursor guide](./docs/guides/cursor.md) · [allowlist](./docs/guides/allowlist.md) ·
+More: [Claude Code guide](./docs/guides/claude-code.md) · [allowlist](./docs/guides/allowlist.md) ·
 [runbook](./docs/operations/runbook.md) · [security model](./docs/architecture/security-model.md) ·
 [contributing](./CONTRIBUTING.md)

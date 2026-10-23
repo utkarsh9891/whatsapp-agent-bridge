@@ -1,6 +1,6 @@
 # 2026-10-23-b283a0 — Cursor support: a dedicated workspace, read-only, with a taint guard
 
-- **Status:** accepted
+- **Status:** superseded by [2026-10-23-3d143d](./2026-10-23-3d143d-drop-cursor-support.md)
 - **Date:** 2026-10-23
 - **Deciders:** Utkarsh Upadhyay
 - **Scope:** plugin
