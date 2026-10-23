@@ -2,6 +2,11 @@
 
 Notable changes per plugin version (`plugins/whatsapp/.claude-plugin/plugin.json`). Back to [AGENTS.md](./AGENTS.md).
 
+## 0.4.1 — 2026-10-24
+
+- Python dependencies refreshed (mcp 1.30, starlette 1.9, anyio 4.15, urllib3 2.8, certifi 2026.10.23); `mcp` held
+  below 2.0 until the server is migrated to its renamed API.
+
 ## 0.4.0 — 2026-10-24
 
 - **Cursor support removed** ([ADR 3d143d](./docs/architecture/decisions/2026-10-23-3d143d-drop-cursor-support.md)): it could
