@@ -2,6 +2,14 @@
 
 Notable changes per plugin version (`plugins/whatsapp/.claude-plugin/plugin.json`). Back to [AGENTS.md](./AGENTS.md).
 
+## 0.4.0 — 2026-10-24
+
+- **Cursor support removed** ([ADR 3d143d](./docs/architecture/decisions/2026-10-23-3d143d-drop-cursor-support.md)): it could
+  only be read-only, and Claude on Haiku is cheap. The bypass guard blocks WhatsApp tools in Cursor again. Clean up
+  an old Cursor install with the [runbook](./docs/operations/runbook.md#removing-an-old-cursor-install) steps.
+- Renamed back to **whatsapp-claude**: install as `whatsapp@whatsapp-claude`; service label
+  `com.whatsapp-claude.bridge` (`install.sh service` removes `com.whatsapp-agent-bridge.bridge`).
+
 ## 0.3.2 — 2026-10-24
 
 - `#wa add me` (also `myself`, `self`) allowlists your own "Message yourself" chat by its phone-number and LID

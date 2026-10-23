@@ -4,8 +4,7 @@ type: plugin            # plugin | service | mcp-server
 purpose: >
   Claude Code plugin that packages WhatsApp access behind a dedicated session: the bypass guard hook
   (PreToolUse, every session), /wa-setup, the whatsapp-triage skill, the wa and wa-allow launchers, and
-  install.sh (build, pair, launchd service). Cursor: the taint guard (user ~/.cursor/hooks.json), the WhatsApp
-  workspace and wa-cursor. Decisions: ADR 2026-10-23-8f4095, ADR 2026-10-23-b283a0.
+  install.sh (build, pair, launchd service). Decisions: ADR 2026-10-23-8f4095, ADR 2026-10-23-3d143d.
 consumes:
   - bridge              # built and run by bin/install.sh
   - server              # installed by bin/install.sh, launched by bin/wa via mcp.json
@@ -20,17 +19,14 @@ guard_files:            # CODEOWNERS-protected; see docs/architecture/security-m
   - ./wa/settings.json
   - ./bin/wa
   - ./bin/install.sh
-  - ./bin/wa-cursor
-  - ./cursor/cursor-guard.sh
 docs:
   readme: ./README.md
   design: ../../docs/architecture/decisions/2026-10-23-8f4095-dedicated-session-and-bypass-guard.md
-  design_cursor: ../../docs/architecture/decisions/2026-10-23-b283a0-cursor-support-with-taint-guard.md
+  design_cursor_dropped: ../../docs/architecture/decisions/2026-10-23-3d143d-drop-cursor-support.md
   security: ../../docs/architecture/security-model.md
 commands:
-  test: "hooks/test-bypass-guard.sh && cursor/test-cursor-guard.sh && shellcheck bin/install.sh bin/wa bin/wa-cursor hooks/*.sh cursor/*.sh"
+  test: "hooks/test-bypass-guard.sh && shellcheck bin/install.sh bin/wa hooks/*.sh"
   install: "bin/install.sh"
   status: "bin/install.sh status"
-  cursor: "bin/install.sh cursor"
 owners:
   - utkarsh9891

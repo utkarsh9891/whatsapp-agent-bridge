@@ -5,7 +5,7 @@ something lives, the answer is here or one hop away. [`CLAUDE.md`](./CLAUDE.md),
 and every other agent or IDE entry point point here. Reachability is enforced in CI by
 [`scripts/check-docs.py`](./scripts/check-docs.py).
 
-**whatsapp-agent-bridge** lets you read, triage and reply to WhatsApp from an AI coding assistant. A local **bridge**
+**whatsapp-claude** lets you read, triage and reply to WhatsApp from Claude Code. A local **bridge**
 links your WhatsApp account as a linked device and stores the chats you allowlist; an **MCP server** exposes them
 as tools; a **Claude Code plugin** packages both behind a dedicated session and a guard that keeps the tools out
 of permission-bypass mode. Message text is untrusted input from other people, and the whole design follows from
@@ -32,13 +32,12 @@ that.
 
   | Module | Path | Manifest | What it is |
   |---|---|---|---|
-  | `plugin` | [`plugins/whatsapp/`](./plugins/whatsapp/README.md) | [`module.yaml`](./plugins/whatsapp/module.yaml) | Claude Code plugin and Cursor integration: guard hooks, `/wa-setup`, triage skill and rules, `wa` / `wa-cursor` launchers, installer |
+  | `plugin` | [`plugins/whatsapp/`](./plugins/whatsapp/README.md) | [`module.yaml`](./plugins/whatsapp/module.yaml) | Claude Code plugin: guard hook, `/wa-setup`, triage skill, `wa` and `wa-allow` launchers, installer |
   | `bridge` | [`plugins/whatsapp/bridge/`](./plugins/whatsapp/bridge/README.md) | [`module.yaml`](./plugins/whatsapp/bridge/module.yaml) | Go service: WhatsApp linked device, allowlist, local send API |
   | `server` | [`plugins/whatsapp/server/`](./plugins/whatsapp/server/README.md) | [`module.yaml`](./plugins/whatsapp/server/module.yaml) | Python MCP server: read tools, `digest`, send tools via the bridge |
 
 - **Using it**
   - [Claude Code guide](./docs/guides/claude-code.md) — the `wa` session, what it allows and asks
-  - [Cursor guide](./docs/guides/cursor.md) — the WhatsApp workspace, `wa-cursor`, the taint guard
   - [Allowlist guide](./docs/guides/allowlist.md) — choosing which chats are captured and which can be replied to
 - **Operating it** — [Runbook](./docs/operations/runbook.md): install, pair, re-pair, service, logs,
   several machines, uninstall, troubleshooting
@@ -54,6 +53,6 @@ that.
 |---|---|
 | Change what the bridge stores or sends | [bridge module.yaml](./plugins/whatsapp/bridge/module.yaml), then [security model](./docs/architecture/security-model.md) |
 | Add or change an MCP tool | [server module.yaml](./plugins/whatsapp/server/module.yaml), then the [triage skill](./plugins/whatsapp/skills/whatsapp-triage/SKILL.md) |
-| Touch a guard file (`hooks/`, `cursor/`, `wa/settings.json`, `bin/wa`, `bin/wa-cursor`, `bridge/config.go`, `bridge/selfcmd.go`, `bin/install.sh`) | [security model](./docs/architecture/security-model.md) and [principle: never weaken a guard](./agent/principles/never-weaken-a-guard.mdc) |
+| Touch a guard file (`hooks/`, `wa/settings.json`, `bin/wa`, `bridge/config.go`, `bridge/selfcmd.go`, `bin/install.sh`) | [security model](./docs/architecture/security-model.md) and [principle: never weaken a guard](./agent/principles/never-weaken-a-guard.mdc) |
 | Make a design choice someone could later want to reverse | write an ADR first: [decisions](./docs/architecture/decisions/README.md) |
 | Fix a machine that stopped receiving messages | [runbook § troubleshooting](./docs/operations/runbook.md#troubleshooting) |
