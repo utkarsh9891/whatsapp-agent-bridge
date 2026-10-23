@@ -1,6 +1,6 @@
 # 2026-10-23-e302a3 — The bridge stores content and allows sends only for allowlisted chats
 
-- **Status:** accepted
+- **Status:** amended by [2026-10-23-f28675](./2026-10-23-f28675-allowlist-carried-in-whatsapp-self-chat.md)
 - **Date:** 2026-10-23
 - **Deciders:** Utkarsh Upadhyay
 - **Scope:** bridge

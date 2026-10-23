@@ -31,6 +31,11 @@ type Config struct {
 	AllowDirectChats bool `json:"allow_direct_chats"`
 	// REST API port, bound to 127.0.0.1 only.
 	Port int `json:"port"`
+	// Chat names from #wa add commands not yet matched to a chat on this
+	// machine; resolved to a JID when a chat with that exact name is seen.
+	AllowNames []string `json:"allow_names,omitempty"`
+	// IDs of #wa commands already applied here, so replays are no-ops.
+	AppliedCommands []string `json:"applied_commands,omitempty"`
 }
 
 var (
@@ -67,6 +72,11 @@ func ensureDirs() error {
 func currentConfig() Config {
 	cfgMu.Lock()
 	defer cfgMu.Unlock()
+	return loadConfigLocked()
+}
+
+// loadConfigLocked returns the config, re-reading the file if it changed. cfgMu must be held.
+func loadConfigLocked() Config {
 	path := waPath("config.json")
 	st, err := os.Stat(path)
 	if err != nil {
@@ -92,6 +102,36 @@ func currentConfig() Config {
 	}
 	cfg, cfgMtime = c, st.ModTime()
 	return cfg
+}
+
+// mutateConfig applies fn to the current config and writes it back atomically (0600).
+// It returns fn's result.
+func mutateConfig(fn func(*Config) string) (string, error) {
+	cfgMu.Lock()
+	defer cfgMu.Unlock()
+	c := loadConfigLocked()
+	c.AllowChats = append([]string(nil), c.AllowChats...)
+	c.AllowNames = append([]string(nil), c.AllowNames...)
+	c.AppliedCommands = append([]string(nil), c.AppliedCommands...)
+	result := fn(&c)
+	data, err := json.MarshalIndent(c, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	path := waPath("config.json")
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, append(data, '\n'), 0600); err != nil {
+		return "", err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		return "", err
+	}
+	st, err := os.Stat(path)
+	if err != nil {
+		return "", err
+	}
+	cfg, cfgMtime = c, st.ModTime()
+	return result, nil
 }
 
 // isAllowed reports whether a chat's content may be stored or sent to.

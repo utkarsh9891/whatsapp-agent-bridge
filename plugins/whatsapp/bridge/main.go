@@ -100,6 +100,9 @@ func (store *MessageStore) StoreChat(jid, name string, lastMessageTime time.Time
 		"INSERT OR REPLACE INTO chats (jid, name, last_message_time) VALUES (?, ?, ?)",
 		jid, name, lastMessageTime,
 	)
+	if err == nil {
+		resolvePendingName(jid, name)
+	}
 	return err
 }
 
@@ -429,6 +432,9 @@ func handleMessage(client *whatsmeow.Client, messageStore *MessageStore, msg *ev
 		logger.Warnf("Failed to store chat: %v", err)
 	}
 
+	// #wa allowlist commands from the owner's own chat (ADR 2026-10-23-f28675)
+	handleSelfCommand(client, messageStore, msg.Info.Chat, msg.Info.Sender, msg.Info.IsFromMe, msg.Info.ID, extractTextContent(msg.Message), true)
+
 	// Only allowlisted chats get their content stored
 	if !isAllowed(chatJID) {
 		return
@@ -466,6 +472,18 @@ func handleMessage(client *whatsmeow.Client, messageStore *MessageStore, msg *ev
 	if err != nil {
 		logger.Warnf("Failed to store message: %v", err)
 	}
+}
+
+// CommandRequest is the body of POST /api/command, e.g. {"command": "add Field Ops North"}
+type CommandRequest struct {
+	Command string `json:"command"`
+}
+
+// CommandResponse reports the result of an allowlist command on this machine
+type CommandResponse struct {
+	Success bool   `json:"success"`
+	Result  string `json:"result,omitempty"`
+	Message string `json:"message"`
 }
 
 // DownloadMediaRequest represents the request body for the download media API
@@ -775,6 +793,51 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 		})
 	}))
 
+	// Handler for allowlist commands: posts "#wa <command>" to the owner's own
+	// chat so every machine applies it, and applies it here (a device doesn't
+	// receive its own sends back)
+	http.HandleFunc("/api/command", requireAuth(token, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req CommandRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request format", http.StatusBadRequest)
+			return
+		}
+		text := commandPrefix + " " + strings.TrimSpace(req.Command)
+		cmd, _, err := parseSelfCommand(text)
+		w.Header().Set("Content-Type", "application/json")
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(CommandResponse{Message: err.Error()})
+			return
+		}
+		self, _ := ownJIDs(client)
+		if self.User == "" || !client.IsConnected() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(CommandResponse{Message: "Not connected to WhatsApp"})
+			return
+		}
+		resp, err := client.SendMessage(context.Background(), self, &waProto.Message{Conversation: proto.String(text)})
+		if err != nil {
+			w.WriteHeader(http.StatusBadGateway)
+			json.NewEncoder(w).Encode(CommandResponse{Message: fmt.Sprintf("Error sending command: %v", err)})
+			return
+		}
+		result, err := applySelfCommand(resp.ID, cmd, messageStore.lookupChatsByName)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(CommandResponse{Message: err.Error()})
+			return
+		}
+		if emoji, ok := resultReaction[result]; ok {
+			client.SendMessage(context.Background(), self, client.BuildReaction(self, self, resp.ID, emoji))
+		}
+		json.NewEncoder(w).Encode(CommandResponse{Success: true, Result: result, Message: "posted to your self-chat; other machines apply it as they receive it"})
+	}))
+
 	// Start the server, loopback only
 	serverAddr := fmt.Sprintf("127.0.0.1:%d", port)
 	fmt.Printf("Starting REST API server on %s...\n", serverAddr)
@@ -1036,6 +1099,8 @@ func handleHistorySync(client *whatsmeow.Client, messageStore *MessageStore, his
 	fmt.Printf("Received history sync event with %d conversations\n", len(historySync.Data.Conversations))
 
 	syncedCount := 0
+	var commands []pendingCommand
+	ownPN, ownLID := ownJIDs(client)
 	for _, conversation := range historySync.Data.Conversations {
 		// Parse JID from the conversation
 		if conversation.ID == nil {
@@ -1072,6 +1137,25 @@ func handleHistorySync(client *whatsmeow.Client, messageStore *MessageStore, his
 			}
 
 			messageStore.StoreChat(chatJID, name, timestamp)
+
+			// Collect #wa allowlist commands from the owner's own chat; applied after the sync, oldest first
+			if isSelfChat(jid, ownPN, ownLID) {
+				for _, m := range messages {
+					if m == nil || m.Message == nil || m.Message.Key == nil || !m.Message.Key.GetFromMe() {
+						continue
+					}
+					text := extractTextContent(m.Message.Message)
+					if _, isCommand, _ := parseSelfCommand(text); isCommand {
+						commands = append(commands, pendingCommand{
+							at:     time.Unix(int64(m.Message.GetMessageTimestamp()), 0),
+							chat:   jid,
+							sender: ownPN,
+							msgID:  m.Message.Key.GetID(),
+							text:   text,
+						})
+					}
+				}
+			}
 
 			// Only allowlisted chats get their content stored
 			if !isAllowed(chatJID) {
@@ -1164,6 +1248,7 @@ func handleHistorySync(client *whatsmeow.Client, messageStore *MessageStore, his
 		}
 	}
 
+	applyHistoryCommands(client, messageStore, commands)
 	fmt.Printf("History sync complete. Stored %d messages.\n", syncedCount)
 }
 

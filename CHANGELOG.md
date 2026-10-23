@@ -2,6 +2,13 @@
 
 Notable changes per plugin version (`plugins/whatsapp/.claude-plugin/plugin.json`). Back to [AGENTS.md](./AGENTS.md).
 
+## 0.2.0 — 2026-10-24
+
+- The allowlist is shared by every machine through your WhatsApp "Message yourself" chat: `#wa add|remove|direct`
+  typed on the phone or posted by `wa-allow`; applied once per machine, with a ✅ ⏳ ❓ ❌ reaction; no file sync
+  ([ADR f28675](./docs/architecture/decisions/2026-10-23-f28675-allowlist-carried-in-whatsapp-self-chat.md)).
+  Reinstall with `/wa-setup` on each machine.
+
 ## 0.1.0 — 2026-10-23
 
 - Hardened fork of lharries/whatsapp-mcp: loopback-only, token-authenticated bridge API; outbox-only media

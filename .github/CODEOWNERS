@@ -3,6 +3,7 @@
 
 # Security boundary: allowlist, API token, outbox, path sanitising
 /plugins/whatsapp/bridge/config.go   @utkarsh9891
+/plugins/whatsapp/bridge/selfcmd.go  @utkarsh9891
 # Bypass-mode guard and the dedicated session's permissions
 /plugins/whatsapp/hooks/             @utkarsh9891
 /plugins/whatsapp/wa/settings.json   @utkarsh9891

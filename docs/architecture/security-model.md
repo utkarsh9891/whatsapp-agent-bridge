@@ -28,6 +28,7 @@ seeing and approving it.
 | T7 | A send request exfiltrates an arbitrary file (`media_path=~/.ssh/id_rsa`) | Media sends only from `~/.whatsapp-mcp/outbox`, resolved through symlinks; the MCP server never copies files into it | `TestOutboxPath` (dot-dot and symlink escapes) |
 | T8 | A sender-chosen document name (`../../.zshrc`) overwrites files on download | Filenames and chat JIDs reduced to one safe path component | `TestSafeName` |
 | T9 | Chat content leaks through logs or loose permissions | No message text is logged; data dir 0700, files 0600 | `TestEnsureDirsPrivate`, `TestLoadTokenStableAndPrivate` |
+| T11 | Someone else changes your allowlist (to capture or send to a chat you didn't choose) | Allowlist commands are obeyed only when **sent by you in your own self-chat**; `#wa` text in any other chat is ignored | `TestIsSelfChat`, `TestCommandsOnlyFromSelf` |
 | T10 | Supply chain: a malicious dependency or action | Upstream pinned to a reviewed commit; GitHub Actions pinned by SHA; Dependabot; owner review on every PR | `.github/` ([branching and merging](../contributing/branching-and-merging.md)) |
 
 ## Residual risks (accepted, stated plainly)
