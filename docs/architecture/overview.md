@@ -14,6 +14,8 @@ flowchart LR
     server -- "POST /api/send, /api/download<br/>127.0.0.1 + bearer token" --> bridge
     claude["Claude Code<br/>`wa` session"] -- "MCP stdio" --> server
     hook["bypass guard hook<br/>(every Claude session)"] -. "PreToolUse: deny<br/>unless prompts are on" .-> claude
+    cursor["Cursor<br/>WhatsApp workspace"] -- "MCP stdio" --> server
+    cguard["taint guard<br/>(every Cursor window)"] -. "ask on sends;<br/>ask on shell after WhatsApp" .-> cursor
   end
 ```
 
@@ -21,7 +23,7 @@ flowchart LR
 |---|---|---|---|
 | **bridge** | [`plugins/whatsapp/bridge`](../../plugins/whatsapp/bridge/README.md) | long-running process (`launchd` agent `com.whatsapp-agent-bridge.bridge`) | the WhatsApp session (`whatsapp.db`), the message store (`messages.db`), the API token, the allowlist check |
 | **server** | [`plugins/whatsapp/server`](../../plugins/whatsapp/server/README.md) | child process of the AI client, per session, over stdio | the MCP tool surface, the `digest` triage view |
-| **plugin** | [`plugins/whatsapp`](../../plugins/whatsapp/README.md) | loaded by Claude Code | the guard hook, `/wa-setup`, the triage skill, `wa` and `wa-allow`, `install.sh` |
+| **plugin** | [`plugins/whatsapp`](../../plugins/whatsapp/README.md) | loaded by Claude Code; `cursor/` installed into Cursor | the guard hooks, `/wa-setup`, the triage skill and rules, `wa`, `wa-cursor`, `wa-allow`, `install.sh` |
 
 ## Data flow
 
@@ -47,6 +49,8 @@ flowchart LR
 | `media/<chat>/` | bridge | downloaded media, on request only |
 | `outbox/` | you | the only folder files can be sent from |
 | `app/` | `install.sh` | built bridge binary, MCP server, launchers; replaced on reinstall |
+| `cursor-workspace/` | `install.sh cursor` | the Cursor WhatsApp workspace: `.cursor/mcp.json`, `.cursor/rules/` |
+| `cursor-taint/` | Cursor guard | one empty marker per Cursor conversation that used WhatsApp |
 | `mcp.json`, `settings.json`, `workspace/` | `install.sh` | the `wa` session's MCP config, permission settings and neutral working directory |
 | `bridge.log` | launchd | connection events and errors; **never message text** |
 
