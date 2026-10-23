@@ -93,6 +93,9 @@ func normName(name string) string {
 	return strings.ToLower(strings.Join(strings.Fields(name), " "))
 }
 
+// selfAliases name the owner's own chat, which has no name to match.
+var selfAliases = map[string]bool{"me": true, "myself": true, "self": true}
+
 func isJID(arg string) bool {
 	return strings.Contains(arg, "@") && !strings.ContainsAny(arg, " \t")
 }
@@ -117,9 +120,14 @@ func without(list []string, drop map[string]bool) []string {
 }
 
 // applySelfCommand applies cmd to config.json once per msgID and returns one of the result* constants.
-func applySelfCommand(msgID string, cmd selfCommand, lookup chatLookup) (string, error) {
+// selfJIDs are the owner's own chat JIDs, used for the me/myself/self alias.
+func applySelfCommand(msgID string, cmd selfCommand, lookup chatLookup, selfJIDs []string) (string, error) {
 	var jids []string
-	if (cmd.Op == "add" || cmd.Op == "remove") && !isJID(cmd.Arg) {
+	self := selfAliases[normName(cmd.Arg)]
+	switch {
+	case (cmd.Op == "add" || cmd.Op == "remove") && self:
+		jids = selfJIDs
+	case (cmd.Op == "add" || cmd.Op == "remove") && !isJID(cmd.Arg):
 		jids = lookup(cmd.Arg) // outside the config lock: it queries the message store
 	}
 	return mutateConfig(func(c *Config) string {
@@ -134,6 +142,14 @@ func applySelfCommand(msgID string, cmd selfCommand, lookup chatLookup) (string,
 			switch {
 			case isJID(cmd.Arg):
 				c.AllowChats = addUnique(c.AllowChats, cmd.Arg)
+			case self:
+				if len(jids) == 0 {
+					return resultInvalid // not paired: own JIDs unknown
+				}
+				for _, j := range jids {
+					c.AllowChats = addUnique(c.AllowChats, j)
+				}
+				c.AllowNames = without(c.AllowNames, selfAliases) // e.g. left pending by an older bridge
 			case len(jids) == 1:
 				c.AllowChats = addUnique(c.AllowChats, jids[0])
 			case len(jids) == 0:
@@ -217,6 +233,18 @@ func ownJIDs(client *whatsmeow.Client) (pn, lid types.JID) {
 	return pn, client.Store.LID
 }
 
+// selfChatJIDs are the owner's own chat JIDs (phone number and LID), without device parts.
+func selfChatJIDs(client *whatsmeow.Client) []string {
+	pn, lid := ownJIDs(client)
+	var out []string
+	for _, j := range []types.JID{pn, lid.ToNonAD()} {
+		if j.User != "" {
+			out = append(out, j.String())
+		}
+	}
+	return out
+}
+
 // handleSelfCommand applies a #wa command if text is one sent by the owner in
 // their own chat. It reports whether text was a command. live controls the reaction.
 func handleSelfCommand(client *whatsmeow.Client, store *MessageStore, chat, sender types.JID, fromMe bool, msgID, text string, live bool) bool {
@@ -231,7 +259,7 @@ func handleSelfCommand(client *whatsmeow.Client, store *MessageStore, chat, send
 	result := resultInvalid
 	if perr == nil {
 		var err error
-		if result, err = applySelfCommand(msgID, cmd, store.lookupChatsByName); err != nil {
+		if result, err = applySelfCommand(msgID, cmd, store.lookupChatsByName, selfChatJIDs(client)); err != nil {
 			fmt.Printf("Failed to apply allowlist command: %v\n", err)
 			return true
 		}

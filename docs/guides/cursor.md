@@ -44,5 +44,4 @@ the guard only allows or blocks:
 | any shell command, or another MCP server's tool, in a chat that has used WhatsApp | **blocked**: start a new chat |
 | WhatsApp tools in any other Cursor project | blocked |
 
-The Cursor rules installed in the workspace tell the agent it is read-only, so it drafts replies for you to send
-from `wa` instead of offering to send. The Claude Code guard also runs inside Cursor; it lets the Cursor guard decide when that guard is installed.
+The Claude Code guard also runs inside Cursor; it lets the Cursor guard decide when that guard is installed.

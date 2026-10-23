@@ -6,8 +6,8 @@ Notable changes per plugin version (`plugins/whatsapp/.claude-plugin/plugin.json
 
 - `#wa add me` (also `myself`, `self`) allowlists your own "Message yourself" chat by its phone-number and LID
   JIDs; it has no name to match.
-- The Cursor workspace rules state that Cursor is read-only for WhatsApp, so the agent drafts replies for `wa`
-  instead of offering to send.
+- Reinstalling while the bridge runs no longer leaves the service stopped: `install.sh` stops it before swapping
+  the binary, waits for launchd, and retries the start.
 
 ## 0.3.1 — 2026-10-24
 
