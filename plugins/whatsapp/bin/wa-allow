@@ -1,0 +1,90 @@
+#!/usr/bin/env -S uv run --quiet --script
+# /// script
+# requires-python = ">=3.11"
+# ///
+"""Manage the WhatsApp chat allowlist (~/.whatsapp-mcp/config.json).
+
+  wa-allow list [search]      chats the bridge has seen; * = allowlisted
+  wa-allow add <jid|search>   allowlist a chat (a search must match exactly one)
+  wa-allow remove <jid>       stop capturing and sending to a chat
+  wa-allow direct on|off      allowlist all 1:1 chats
+
+The bridge re-reads the file on change; history from before a chat was added
+is not backfilled.
+"""
+import json
+import os
+import sqlite3
+import sys
+
+HOME = os.environ.get("WA_HOME") or os.path.expanduser("~/.whatsapp-mcp")
+CONFIG = os.path.join(HOME, "config.json")
+
+
+def load():
+    try:
+        with open(CONFIG) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"allow_chats": [], "allow_direct_chats": False, "port": 8080}
+
+
+def save(cfg):
+    tmp = CONFIG + ".tmp"
+    with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:
+        json.dump(cfg, f, indent=2)
+        f.write("\n")
+    os.replace(tmp, CONFIG)
+
+
+def chats(search=""):
+    db = os.path.join(HOME, "messages.db")
+    if not os.path.exists(db):
+        sys.exit("No chats yet: is the bridge paired and running? (install.sh status)")
+    conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    rows = conn.execute(
+        "SELECT jid, COALESCE(name, ''), COALESCE(last_message_time, '') FROM chats "
+        "WHERE jid LIKE ? OR name LIKE ? ORDER BY last_message_time DESC",
+        (f"%{search}%", f"%{search}%"),
+    ).fetchall()
+    conn.close()
+    return rows
+
+
+def main(argv):
+    if not argv or argv[0] in ("-h", "--help"):
+        print(__doc__.strip())
+        return
+    cmd, args = argv[0], argv[1:]
+    cfg = load()
+    allowed = set(cfg.get("allow_chats", []))
+    if cmd == "list":
+        for jid, name, last in chats(" ".join(args)):
+            print(f"{'*' if jid in allowed else ' '} {last[:16]:16}  {name[:40]:40}  {jid}")
+    elif cmd == "add" and args:
+        target = " ".join(args)
+        if "@" not in target:
+            hits = chats(target)
+            if len(hits) != 1:
+                for jid, name, _ in hits[:20]:
+                    print(f"  {name}  {jid}")
+                sys.exit(f"'{target}' matches {len(hits)} chats; pass the exact jid")
+            target = hits[0][0]
+        if target not in allowed:
+            cfg.setdefault("allow_chats", []).append(target)
+            save(cfg)
+        print(f"allowlisted {target}")
+    elif cmd == "remove" and args:
+        cfg["allow_chats"] = [j for j in cfg.get("allow_chats", []) if j != args[0]]
+        save(cfg)
+        print(f"removed {args[0]} (stored messages stay; delete them from messages.db if needed)")
+    elif cmd == "direct" and args and args[0] in ("on", "off"):
+        cfg["allow_direct_chats"] = args[0] == "on"
+        save(cfg)
+        print(f"allow_direct_chats = {cfg['allow_direct_chats']}")
+    else:
+        sys.exit(__doc__.strip())
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

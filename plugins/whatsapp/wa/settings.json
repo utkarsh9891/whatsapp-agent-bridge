@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "defaultMode": "default",
+    "disableBypassPermissionsMode": "disable",
+    "allow": [
+      "mcp__whatsapp__digest",
+      "mcp__whatsapp__list_chats",
+      "mcp__whatsapp__list_messages",
+      "mcp__whatsapp__get_chat",
+      "mcp__whatsapp__get_message_context",
+      "mcp__whatsapp__get_contact_chats",
+      "mcp__whatsapp__get_direct_chat_by_contact",
+      "mcp__whatsapp__get_last_interaction",
+      "mcp__whatsapp__search_contacts"
+    ],
+    "ask": [
+      "mcp__whatsapp__send_message",
+      "mcp__whatsapp__send_file",
+      "mcp__whatsapp__send_audio_message",
+      "mcp__whatsapp__download_media"
+    ]
+  }
+}
