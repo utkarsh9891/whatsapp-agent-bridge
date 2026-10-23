@@ -1,11 +1,23 @@
 version: 2
 updates:
+  # One PR per ecosystem per week: the lockfile is shared, so separate PRs
+  # invalidate each other on every merge.
   - package-ecosystem: gomod
     directory: /plugins/whatsapp/bridge
     schedule: { interval: weekly }
+    groups:
+      go: { patterns: ["*"] }
   - package-ecosystem: uv
     directory: /plugins/whatsapp/server
     schedule: { interval: weekly }
+    groups:
+      python: { patterns: ["*"] }
+    ignore:
+      # mcp 2.x renames FastMCP and changes its API; needs a code migration (see #2)
+      - dependency-name: "mcp"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    groups:
+      actions: { patterns: ["*"] }
