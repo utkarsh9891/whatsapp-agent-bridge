@@ -2,20 +2,23 @@
 # /// script
 # requires-python = ">=3.11"
 # ///
-"""Manage the WhatsApp chat allowlist (~/.whatsapp-mcp/config.json).
+"""Manage the WhatsApp chat allowlist, shared by every machine through your self-chat.
 
-  wa-allow list [search]      chats the bridge has seen; * = allowlisted
-  wa-allow add <jid|search>   allowlist a chat (a search must match exactly one)
-  wa-allow remove <jid>       stop capturing and sending to a chat
-  wa-allow direct on|off      allowlist all 1:1 chats
+  wa-allow list [search]       chats this machine has seen; * allowlisted, ⏳ pending names
+  wa-allow add <name|jid>      allowlist a chat (exact name, any case, or JID)
+  wa-allow remove <name|jid>   stop capturing and sending to a chat
+  wa-allow direct on|off       allowlist all 1:1 chats
 
-The bridge re-reads the file on change; history from before a chat was added
-is not backfilled.
+add/remove/direct post "#wa <command>" to your "Message yourself" chat through the
+local bridge, so every linked machine applies it. The same commands can be typed
+in that chat on your phone. History from before a chat was added is not fetched.
 """
 import json
 import os
 import sqlite3
 import sys
+import urllib.error
+import urllib.request
 
 HOME = os.environ.get("WA_HOME") or os.path.expanduser("~/.whatsapp-mcp")
 CONFIG = os.path.join(HOME, "config.json")
@@ -29,12 +32,35 @@ def load():
         return {"allow_chats": [], "allow_direct_chats": False, "port": 8080}
 
 
-def save(cfg):
-    tmp = CONFIG + ".tmp"
-    with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:
-        json.dump(cfg, f, indent=2)
-        f.write("\n")
-    os.replace(tmp, CONFIG)
+def command(text):
+    """Post an allowlist command through the bridge (POST /api/command)."""
+    cfg = load()
+    try:
+        with open(os.path.join(HOME, "token")) as f:
+            token = f.read().strip()
+    except OSError:
+        sys.exit("No bridge token: is the bridge set up? (install.sh status)")
+    req = urllib.request.Request(
+        f"http://127.0.0.1:{cfg.get('port') or 8080}/api/command",
+        data=json.dumps({"command": text}).encode(),
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            body = json.load(r)
+    except urllib.error.HTTPError as e:
+        body = json.loads(e.read() or b"{}")
+        sys.exit(f"refused: {body.get('message', e.reason)}")
+    except urllib.error.URLError as e:
+        sys.exit(f"bridge not reachable ({e.reason}); start it with install.sh service")
+    meaning = {
+        "applied": "applied",
+        "pending": "pending: no chat with that name seen yet on this machine; applies when it appears",
+        "ambiguous": "not applied: several chats have that name; pass the JID (wa-allow list <name>)",
+        "duplicate": "already applied",
+    }
+    print(f"{text}: {meaning.get(body.get('result'), body.get('result'))} here; {body.get('message', '')}")
 
 
 def chats(search=""):
@@ -61,27 +87,12 @@ def main(argv):
     if cmd == "list":
         for jid, name, last in chats(" ".join(args)):
             print(f"{'*' if jid in allowed else ' '} {last[:16]:16}  {name[:40]:40}  {jid}")
-    elif cmd == "add" and args:
-        target = " ".join(args)
-        if "@" not in target:
-            hits = chats(target)
-            if len(hits) != 1:
-                for jid, name, _ in hits[:20]:
-                    print(f"  {name}  {jid}")
-                sys.exit(f"'{target}' matches {len(hits)} chats; pass the exact jid")
-            target = hits[0][0]
-        if target not in allowed:
-            cfg.setdefault("allow_chats", []).append(target)
-            save(cfg)
-        print(f"allowlisted {target}")
-    elif cmd == "remove" and args:
-        cfg["allow_chats"] = [j for j in cfg.get("allow_chats", []) if j != args[0]]
-        save(cfg)
-        print(f"removed {args[0]} (stored messages stay; delete them from messages.db if needed)")
+        for name in cfg.get("allow_names", []):
+            print(f"⏳ pending name: {name}")
+    elif cmd in ("add", "remove") and args:
+        command(f"{cmd} {' '.join(args)}")
     elif cmd == "direct" and args and args[0] in ("on", "off"):
-        cfg["allow_direct_chats"] = args[0] == "on"
-        save(cfg)
-        print(f"allow_direct_chats = {cfg['allow_direct_chats']}")
+        command(f"direct {args[0]}")
     else:
         sys.exit(__doc__.strip())
 

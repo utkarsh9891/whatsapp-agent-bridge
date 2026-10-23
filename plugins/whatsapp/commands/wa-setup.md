@@ -14,7 +14,8 @@ Set up WhatsApp on this machine with the plugin's installer at `${CLAUDE_PLUGIN_
    Then wait for it to finish and report whether pairing succeeded.
 4. Run `install.sh status` again and report it.
 5. Tell the user the next steps:
-   - `wa-allow list` to see chats, `wa-allow add "<group name>"` to capture a chat (nothing is stored until then)
+   - `wa-allow list` to see chats; capture one with `#wa add <group name>` in the WhatsApp "Message yourself" chat
+     (or `wa-allow add "<group name>"`); it applies on every machine. Nothing is stored until then.
    - start WhatsApp sessions with `wa` in a new terminal; WhatsApp tools are blocked in bypass-permissions mode.
 
 Never print the contents of `~/.whatsapp-mcp/token`, and never read `messages.db` in this session.
