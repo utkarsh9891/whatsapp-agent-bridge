@@ -1,0 +1,10 @@
+---
+description: Write the doc or ADR first, then the code, in that order
+alwaysApply: true
+---
+
+# Doc-first
+
+Before changing behaviour, a guard, a module contract or a design choice, update the documentation that
+describes it, and commit that first: an ADR for reversible decisions, otherwise the module README, guide, runbook
+or security model. Full rule: [documentation mandate](../../docs/contributing/documentation-mandate.md).

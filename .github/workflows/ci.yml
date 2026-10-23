@@ -60,3 +60,9 @@ jobs:
         run: shellcheck plugins/whatsapp/bin/install.sh plugins/whatsapp/bin/wa plugins/whatsapp/hooks/*.sh
       - name: bypass guard
         run: plugins/whatsapp/hooks/test-bypass-guard.sh
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: python3 scripts/check-docs.py

@@ -1,5 +1,7 @@
 # Security
 
+Threats and defences: [security model](./docs/architecture/security-model.md). Back to [AGENTS.md](./AGENTS.md).
+
 Report vulnerabilities privately through **Security → Report a vulnerability** on this repo
 (GitHub private vulnerability reporting). Please don't open a public issue.
 

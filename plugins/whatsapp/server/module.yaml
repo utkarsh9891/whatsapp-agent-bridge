@@ -1,0 +1,24 @@
+# Machine-readable module manifest. Agents parse this to map the repo; keep it in sync with pyproject.toml.
+id: server
+type: mcp-server
+purpose: >
+  Python MCP server (stdio) exposing the WhatsApp store as tools. Reads messages.db read-only; sends and media
+  downloads go through the bridge API with its token. digest gives a cheap triage view across allowlisted chats.
+consumes:
+  - bridge                        # messages.db (read-only), /api/send, /api/download, token
+  - mcp[cli]                      # FastMCP
+language: python
+runtime:
+  python: ">=3.11"
+tools:
+  read: [digest, list_chats, list_messages, get_chat, get_message_context, get_contact_chats,
+         get_direct_chat_by_contact, get_last_interaction, search_contacts]
+  act: [send_message, send_file, send_audio_message, download_media]   # always ask in the wa session
+docs:
+  readme: ./README.md
+  skill: ../skills/whatsapp-triage/SKILL.md
+commands:
+  test: "uv run --with pytest python -m pytest tests -q"
+  run: "uv run main.py"           # launched by the AI client, not by hand
+owners:
+  - utkarsh9891

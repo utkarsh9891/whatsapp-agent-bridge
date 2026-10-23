@@ -1,0 +1,11 @@
+---
+description: Guard-file changes must keep every threat in the security model stopped
+alwaysApply: true
+---
+
+# Never weaken a guard
+
+The guard files are listed in [CODEOWNERS](../../.github/CODEOWNERS). Before changing one, find the threats it
+covers in the [security model](../../docs/architecture/security-model.md), and in the PR state why each is
+still stopped and which test proves it. Never relax a guard to make a test or a workflow easier; never add a
+bypass flag, a global MCP registration, or a fail-open path.
