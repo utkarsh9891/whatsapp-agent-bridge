@@ -1111,6 +1111,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "mcp", extras = ["cli"], specifier = ">=1.6.0" },
+    { name = "mcp", extras = ["cli"], specifier = ">=1.30.0" },
     { name = "requests", specifier = ">=2.34.2" },
 ]
