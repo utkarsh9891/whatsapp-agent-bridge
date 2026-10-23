@@ -2,6 +2,13 @@
 
 Notable changes per plugin version (`plugins/whatsapp/.claude-plugin/plugin.json`). Back to [AGENTS.md](./AGENTS.md).
 
+## 0.3.0 — 2026-10-24
+
+- **Cursor support (read-only)**: `install.sh cursor` adds a WhatsApp workspace and a user-level taint guard;
+  `wa-cursor` opens it (app or `--cli`). Reading and triage in Cursor; sends blocked (reply from `wa`); after
+  WhatsApp is read in a chat, its shell commands and other tools are blocked. Cursor ignores a hook's "ask" in
+  auto-run, so the guard only allows or denies. The Claude guard defers to it inside Cursor ([ADR b283a0](./docs/architecture/decisions/2026-10-23-b283a0-cursor-support-with-taint-guard.md)).
+
 ## 0.2.1 — 2026-10-24
 
 - Renamed the repo and plugin source to **whatsapp-agent-bridge** (it serves Claude Code and, next, Cursor). Install

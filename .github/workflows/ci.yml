@@ -57,9 +57,11 @@ jobs:
           jq -e '.permissions.disableBypassPermissionsMode == "disable"' plugins/whatsapp/wa/settings.json
           test "$(jq -r .version plugins/whatsapp/.claude-plugin/plugin.json)" != null
       - name: shellcheck
-        run: shellcheck plugins/whatsapp/bin/install.sh plugins/whatsapp/bin/wa plugins/whatsapp/hooks/*.sh
-      - name: bypass guard
+        run: shellcheck plugins/whatsapp/bin/install.sh plugins/whatsapp/bin/wa plugins/whatsapp/bin/wa-cursor plugins/whatsapp/hooks/*.sh plugins/whatsapp/cursor/*.sh
+      - name: bypass guard (Claude)
         run: plugins/whatsapp/hooks/test-bypass-guard.sh
+      - name: taint guard (Cursor)
+        run: plugins/whatsapp/cursor/test-cursor-guard.sh
 
   docs:
     runs-on: ubuntu-latest

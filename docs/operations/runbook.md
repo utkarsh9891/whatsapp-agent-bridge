@@ -15,6 +15,12 @@ Prereqs (macOS): `brew install go uv` (`jq` ships with macOS 15+).
 Without Claude: `plugins/whatsapp/bin/install.sh` then `plugins/whatsapp/bin/install.sh pair 91XXXXXXXXXX`.
 If `wa` isn't found, add `~/.local/bin` to `PATH`.
 
+## Cursor
+
+`install.sh cursor` once per machine ([guide](../guides/cursor.md)); `install.sh status` shows the workspace and the
+number of guard hooks (2). Reinstalling keeps other hooks in `~/.cursor/hooks.json`; the first run saves a backup
+as `hooks.json.bak-whatsapp`. `install.sh uninstall` removes only the guard's entries.
+
 ## Pair (link this machine)
 
 `install.sh pair <number>` prints an 8-character code: on the phone, **WhatsApp → Settings → Linked devices →

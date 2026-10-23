@@ -1,0 +1,18 @@
+#!/bin/bash
+# Open the WhatsApp workspace in Cursor (app), or the Cursor agent CLI with --cli.
+# The workspace holds the only Cursor config that loads the WhatsApp MCP server.
+WA_HOME="${WA_HOME:-$HOME/.whatsapp-mcp}"
+WS="$WA_HOME/cursor-workspace"
+[ -f "$WS/.cursor/mcp.json" ] || { echo "wa-cursor: not set up; run install.sh cursor" >&2; exit 1; }
+if [ "${1:-}" = "--cli" ]; then
+  shift
+  for a in "$@"; do
+    case "$a" in
+      -f|--force|--yolo|--workspace|--workspace=*)
+        echo "wa-cursor: $a is not allowed in a WhatsApp session" >&2; exit 1 ;;
+    esac
+  done
+  command -v agent >/dev/null || { echo "wa-cursor: Cursor CLI not found (curl https://cursor.com/install -fsS | bash)" >&2; exit 1; }
+  exec agent --workspace "$WS" "$@"
+fi
+exec open -a Cursor "$WS"

@@ -29,3 +29,4 @@ agent) knows *why* this repo is the way it is and *when* a decision should be re
 | [2026-10-23-8f4095](./2026-10-23-8f4095-dedicated-session-and-bypass-guard.md) | WhatsApp tools only in a dedicated `wa` session, plus a hook that blocks them in bypass mode | plugin | accepted |
 | [2026-10-23-aa4dba](./2026-10-23-aa4dba-public-repo-pr-only-merge-commits.md) | Public repo; `main` changes only by reviewed PR with merge commits | repo | accepted |
 | [2026-10-23-f28675](./2026-10-23-f28675-allowlist-carried-in-whatsapp-self-chat.md) | The allowlist travels through WhatsApp's "Message yourself" chat | bridge | accepted |
+| [2026-10-23-b283a0](./2026-10-23-b283a0-cursor-support-with-taint-guard.md) | Cursor support: a dedicated workspace, read-only, with a taint guard | plugin | accepted |
