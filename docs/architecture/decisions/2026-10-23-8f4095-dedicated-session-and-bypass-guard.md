@@ -1,6 +1,6 @@
 # 2026-10-23-8f4095 — WhatsApp tools only in a dedicated `wa` session, plus a hook that blocks them in bypass mode
 
-- **Status:** accepted
+- **Status:** amended by [2026-10-24-f10233](./2026-10-24-f10233-auto-mode-self-sends-and-send-folders.md)
 - **Date:** 2026-10-23
 - **Deciders:** Utkarsh Upadhyay
 - **Scope:** plugin
