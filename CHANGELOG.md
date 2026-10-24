@@ -2,6 +2,14 @@
 
 Notable changes per plugin version (`plugins/whatsapp/.claude-plugin/plugin.json`). Back to [AGENTS.md](./AGENTS.md).
 
+## 0.5.0 — 2026-10-24
+
+- `wa` starts in **auto mode** (the guard now allows it); `wa --manual` for prompts on everything.
+- Sends to your own "Message yourself" chat go out without asking; sends to others still ask. Downloads don't ask.
+- Files can be sent from `~/Downloads`, `~/Desktop`, `~/Documents`, `~/Pictures` and the outbox (`send_from` in
+  `config.json`); hidden folders are always refused
+  ([ADR f10233](./docs/architecture/decisions/2026-10-24-f10233-auto-mode-self-sends-and-send-folders.md)).
+
 ## 0.4.1 — 2026-10-24
 
 - Python dependencies refreshed (mcp 1.30, starlette 1.9, anyio 4.15, urllib3 2.8, certifi 2026.10.23); `mcp` held

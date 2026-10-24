@@ -40,3 +40,5 @@ wa-allow direct on
 - Messages from before a chat was added are not fetched.
 - Removing a chat stops capture and sends; already-stored messages stay on each machine until deleted.
 - Hand edits of `~/.whatsapp-mcp/config.json` still work but stay on that machine.
+- `send_from` in `config.json` lists the folders files can be sent from (default: outbox, `~/Downloads`,
+  `~/Desktop`, `~/Documents`, `~/Pictures`). Paths with a hidden folder (`.ssh`, `.aws`, …) are always refused.
