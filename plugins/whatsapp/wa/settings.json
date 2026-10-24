@@ -1,6 +1,6 @@
 {
   "permissions": {
-    "defaultMode": "default",
+    "defaultMode": "auto",
     "disableBypassPermissionsMode": "disable",
     "allow": [
       "mcp__whatsapp__digest",
@@ -11,13 +11,8 @@
       "mcp__whatsapp__get_contact_chats",
       "mcp__whatsapp__get_direct_chat_by_contact",
       "mcp__whatsapp__get_last_interaction",
-      "mcp__whatsapp__search_contacts"
-    ],
-    "ask": [
-      "mcp__whatsapp__send_message",
-      "mcp__whatsapp__send_file",
-      "mcp__whatsapp__send_audio_message",
-      "mcp__whatsapp__download_media"
+      "mcp__whatsapp__search_contacts",
+      "Read(~/.whatsapp-mcp/media/**)"
     ]
   }
 }

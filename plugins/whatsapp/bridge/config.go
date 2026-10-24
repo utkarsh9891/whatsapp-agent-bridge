@@ -36,7 +36,12 @@ type Config struct {
 	AllowNames []string `json:"allow_names,omitempty"`
 	// IDs of #wa commands already applied here, so replays are no-ops.
 	AppliedCommands []string `json:"applied_commands,omitempty"`
+	// Folders files may be sent from, besides the outbox; "~/" is the home
+	// folder. Unset means defaultSendFrom. ADR 2026-10-24-f10233.
+	SendFrom []string `json:"send_from,omitempty"`
 }
+
+var defaultSendFrom = []string{"~/Downloads", "~/Desktop", "~/Documents", "~/Pictures"}
 
 var (
 	cfgMu    sync.Mutex
@@ -193,20 +198,63 @@ func safeName(s string) string {
 	return s
 }
 
-// outboxPath resolves a media path for sending, which must be inside $WA_HOME/outbox.
-func outboxPath(p string) (string, error) {
-	outbox, err := filepath.EvalSymlinks(waPath("outbox"))
-	if err != nil {
-		return "", err
+// hasHiddenPart reports whether any component of p starts with "." (.ssh, .aws, ...).
+func hasHiddenPart(p string) bool {
+	for _, c := range strings.Split(filepath.ToSlash(p), "/") {
+		if strings.HasPrefix(c, ".") && c != "." && c != ".." {
+			return true
+		}
 	}
+	return false
+}
+
+// sendFromDirs lists the folders media may be sent from: the outbox, then the
+// configured folders. A configured folder that is relative or hidden is ignored.
+func sendFromDirs() []string {
+	dirs := currentConfig().SendFrom
+	if dirs == nil {
+		dirs = defaultSendFrom
+	}
+	home, _ := os.UserHomeDir()
+	out := []string{waPath("outbox")}
+	for _, d := range dirs {
+		if strings.HasPrefix(d, "~/") {
+			d = filepath.Join(home, d[2:])
+		}
+		if !filepath.IsAbs(d) || hasHiddenPart(d) {
+			continue
+		}
+		out = append(out, filepath.Clean(d))
+	}
+	return out
+}
+
+// sendablePath resolves a file to send, which must be inside a send_from folder,
+// after symlinks, with no hidden component below that folder.
+func sendablePath(p string) (string, error) {
 	resolved, err := filepath.EvalSymlinks(p)
 	if err != nil {
 		return "", err
 	}
-	if !strings.HasPrefix(resolved, outbox+string(os.PathSeparator)) {
-		return "", fmt.Errorf("media must be inside %s", outbox)
+	if st, err := os.Stat(resolved); err != nil || st.IsDir() {
+		return "", fmt.Errorf("not a file: %s", p)
 	}
-	return resolved, nil
+	dirs := sendFromDirs()
+	for _, d := range dirs {
+		base, err := filepath.EvalSymlinks(d)
+		if err != nil {
+			continue
+		}
+		rel, err := filepath.Rel(base, resolved)
+		if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+			continue
+		}
+		if hasHiddenPart(rel) {
+			return "", fmt.Errorf("refusing a file in a hidden folder: %s", p)
+		}
+		return resolved, nil
+	}
+	return "", fmt.Errorf("media must be inside one of: %s", strings.Join(dirs, ", "))
 }
 
 // writeQRPNG saves the pairing QR as $WA_HOME/qr.png so it can be opened

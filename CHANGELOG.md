@@ -9,6 +9,9 @@ Notable changes per plugin version (`plugins/whatsapp/.claude-plugin/plugin.json
 - Files can be sent from `~/Downloads`, `~/Desktop`, `~/Documents`, `~/Pictures` and the outbox (`send_from` in
   `config.json`); hidden folders are always refused
   ([ADR f10233](./docs/architecture/decisions/2026-10-24-f10233-auto-mode-self-sends-and-send-folders.md)).
+- Fixed: media downloads failed with HTTP 403 (the upstream bridge stripped the CDN signature from the download
+  path). Fixed: `list_chats`, `get_chat`, `list_messages` and other read tools failed output validation under mcp
+  1.30; every read tool is now called in tests.
 
 ## 0.4.1 — 2026-10-24
 

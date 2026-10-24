@@ -1,3 +1,5 @@
+import dataclasses
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 from mcp.server.fastmcp import FastMCP
 from digest import digest as whatsapp_digest
@@ -20,6 +22,20 @@ from whatsapp import (
 # Initialize FastMCP server
 mcp = FastMCP("whatsapp")
 
+
+def _plain(value: Any) -> Any:
+    """Dataclasses and datetimes to JSON-ready values, so tool output matches the declared types
+    (FastMCP validates structured output against the return annotation)."""
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return {f.name: _plain(getattr(value, f.name)) for f in dataclasses.fields(value)}
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, (list, tuple)):
+        return [_plain(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _plain(v) for k, v in value.items()}
+    return value
+
 @mcp.tool()
 def digest(since_hours: float = 24, keywords: Optional[List[str]] = None) -> Dict[str, Any]:
     """Triage view across allowlisted chats: per-chat counts, unanswered messages since my
@@ -41,7 +57,7 @@ def search_contacts(query: str) -> List[Dict[str, Any]]:
         query: Search term to match against contact names or phone numbers
     """
     contacts = whatsapp_search_contacts(query)
-    return contacts
+    return _plain(contacts)
 
 @mcp.tool()
 def list_messages(
@@ -55,7 +71,7 @@ def list_messages(
     include_context: bool = True,
     context_before: int = 1,
     context_after: int = 1
-) -> List[Dict[str, Any]]:
+) -> str:
     """Get WhatsApp messages matching specified criteria with optional context.
     
     Args:
@@ -108,7 +124,7 @@ def list_chats(
         include_last_message=include_last_message,
         sort_by=sort_by
     )
-    return chats
+    return _plain(chats)
 
 @mcp.tool()
 def get_chat(chat_jid: str, include_last_message: bool = True) -> Dict[str, Any]:
@@ -119,7 +135,7 @@ def get_chat(chat_jid: str, include_last_message: bool = True) -> Dict[str, Any]
         include_last_message: Whether to include the last message (default True)
     """
     chat = whatsapp_get_chat(chat_jid, include_last_message)
-    return chat
+    return _plain(chat) or {}
 
 @mcp.tool()
 def get_direct_chat_by_contact(sender_phone_number: str) -> Dict[str, Any]:
@@ -129,7 +145,7 @@ def get_direct_chat_by_contact(sender_phone_number: str) -> Dict[str, Any]:
         sender_phone_number: The phone number to search for
     """
     chat = whatsapp_get_direct_chat_by_contact(sender_phone_number)
-    return chat
+    return _plain(chat) or {}
 
 @mcp.tool()
 def get_contact_chats(jid: str, limit: int = 20, page: int = 0) -> List[Dict[str, Any]]:
@@ -141,7 +157,7 @@ def get_contact_chats(jid: str, limit: int = 20, page: int = 0) -> List[Dict[str
         page: Page number for pagination (default 0)
     """
     chats = whatsapp_get_contact_chats(jid, limit, page)
-    return chats
+    return _plain(chats)
 
 @mcp.tool()
 def get_last_interaction(jid: str) -> str:
@@ -167,7 +183,7 @@ def get_message_context(
         after: Number of messages to include after the target message (default 5)
     """
     context = whatsapp_get_message_context(message_id, before, after)
-    return context
+    return _plain(context)
 
 @mcp.tool()
 def send_message(
@@ -175,7 +191,8 @@ def send_message(
     message: str
 ) -> Dict[str, Any]:
     """Send a WhatsApp message to a person or group. For group chats use the JID.
-    Only chats in allow_chats (~/.whatsapp-mcp/config.json) can be sent to.
+    Only chats in allow_chats (~/.whatsapp-mcp/config.json) can be sent to. Sends to the
+    user's own chat go out directly; sends to anyone else ask the user first.
 
     Args:
         recipient: The recipient - either a phone number with country code but no + or other symbols,
@@ -207,7 +224,8 @@ def send_file(recipient: str, media_path: str) -> Dict[str, Any]:
         recipient: The recipient - either a phone number with country code but no + or other symbols,
                  or a JID (e.g., "123456789@s.whatsapp.net" or a group JID like "123456789@g.us")
         media_path: Absolute path to the file to send (image, video, document). It must be inside
-                    ~/.whatsapp-mcp/outbox; the bridge refuses anything else.
+                    ~/Downloads, ~/Desktop, ~/Documents, ~/Pictures or ~/.whatsapp-mcp/outbox
+                    (send_from in config.json), not in a hidden folder; the bridge refuses anything else.
     
     Returns:
         A dictionary containing success status and a status message
@@ -227,7 +245,7 @@ def send_audio_message(recipient: str, media_path: str) -> Dict[str, Any]:
     Args:
         recipient: The recipient - either a phone number with country code but no + or other symbols,
                  or a JID (e.g., "123456789@s.whatsapp.net" or a group JID like "123456789@g.us")
-        media_path: Absolute path to the audio file to send, inside ~/.whatsapp-mcp/outbox
+        media_path: Absolute path to the audio file to send, inside a send_from folder
                     (converted to Opus .ogg in the outbox if it's not a .ogg file)
     
     Returns:

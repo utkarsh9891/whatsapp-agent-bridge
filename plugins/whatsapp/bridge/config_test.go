@@ -78,27 +78,57 @@ func TestSafeName(t *testing.T) {
 	}
 }
 
-func TestOutboxPath(t *testing.T) {
+func TestSendablePath(t *testing.T) {
 	dir := setHome(t)
-	inside := filepath.Join(dir, "outbox", "ok.png")
-	os.WriteFile(inside, []byte("x"), 0600)
-	if _, err := outboxPath(inside); err != nil {
-		t.Fatalf("file in outbox rejected: %v", err)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	file := func(rel string) string {
+		p := filepath.Join(home, rel)
+		os.MkdirAll(filepath.Dir(p), 0700)
+		os.WriteFile(p, []byte("x"), 0600)
+		return p
+	}
+	ok := func(label, p string) {
+		t.Helper()
+		if _, err := sendablePath(p); err != nil {
+			t.Errorf("%s: rejected: %v", label, err)
+		}
+	}
+	bad := func(label, p string) {
+		t.Helper()
+		if _, err := sendablePath(p); err == nil {
+			t.Errorf("%s: accepted %s", label, p)
+		}
 	}
 
-	secret := filepath.Join(dir, "token")
-	os.WriteFile(secret, []byte("s"), 0600)
-	if _, err := outboxPath(secret); err == nil {
-		t.Fatal("file outside outbox accepted")
-	}
-	if _, err := outboxPath(filepath.Join(dir, "outbox", "..", "token")); err == nil {
-		t.Fatal("dot-dot escape accepted")
-	}
-	link := filepath.Join(dir, "outbox", "link")
-	os.Symlink(secret, link)
-	if _, err := outboxPath(link); err == nil {
-		t.Fatal("symlink escape accepted")
-	}
+	outbox := filepath.Join(dir, "outbox", "ok.png")
+	os.WriteFile(outbox, []byte("x"), 0600)
+	ok("outbox", outbox)
+	ok("Downloads", file("Downloads/report.pdf"))
+	ok("Desktop nested", file("Desktop/a/b/photo.jpg"))
+	ok("Documents", file("Documents/notes.txt"))
+	ok("Pictures", file("Pictures/x.png"))
+
+	key := file(".ssh/id_rsa")
+	bad("~/.ssh", key)
+	bad("home root", file("plain.txt"))
+	bad("project dir", file("projects/app/main.go"))
+	bad("hidden folder inside Downloads", file("Downloads/.secret/a.pdf"))
+	bad("hidden file inside Documents", file("Documents/.env"))
+	bad("dot-dot out of Downloads", filepath.Join(home, "Downloads", "..", ".ssh", "id_rsa"))
+	bad("WA token", filepath.Join(dir, "token"))
+	bad("a folder", filepath.Join(home, "Downloads"))
+	bad("missing file", filepath.Join(home, "Downloads", "nope.pdf"))
+	link := filepath.Join(home, "Downloads", "innocent.pdf")
+	os.Symlink(key, link)
+	bad("symlink in Downloads to ~/.ssh", link)
+
+	writeConfig(t, `{"send_from":["~/.config","relative/dir","~/Work"]}`)
+	file(".config/x.txt")
+	bad("hidden configured folder ignored", filepath.Join(home, ".config", "x.txt"))
+	bad("defaults replaced by send_from", file("Downloads/r2.pdf"))
+	ok("configured folder", file("Work/deck.pdf"))
+	ok("outbox always allowed", outbox)
 }
 
 func TestLoadTokenStableAndPrivate(t *testing.T) {
